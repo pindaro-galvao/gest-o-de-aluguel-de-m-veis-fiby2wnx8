@@ -28,8 +28,8 @@ onRecordDeleteRequest((e) => {
 
 // Hook para manter apenas 1 endereço principal por cliente ao salvar (inline callback)
 onRecordCreateRequest((e) => {
-  if (!e.record) return
-  if (!e.record.getBool('principal')) return
+  if (!e.record) return e.next()
+  if (!e.record.getBool('principal')) return e.next()
 
   const clienteId = e.record.getString('cliente')
   try {
@@ -39,11 +39,12 @@ onRecordCreateRequest((e) => {
       .bind({ clienteId: clienteId })
       .execute()
   } catch (_) {}
+  return e.next()
 }, 'enderecos')
 
 onRecordUpdateRequest((e) => {
-  if (!e.record) return
-  if (!e.record.getBool('principal')) return
+  if (!e.record) return e.next()
+  if (!e.record.getBool('principal')) return e.next()
 
   const clienteId = e.record.getString('cliente')
   const recordId = e.record.id
@@ -56,4 +57,5 @@ onRecordUpdateRequest((e) => {
       .bind({ clienteId: clienteId, recordId: recordId })
       .execute()
   } catch (_) {}
+  return e.next()
 }, 'enderecos')
