@@ -17,7 +17,8 @@ export const orcamentosService = {
     // Buscar itens
     const itens = await pb.collection('orcamento_itens').getFullList<OrcamentoItemRecord>({
       filter: `orcamento = "${id}"`,
-      expand: 'produto,produto.tipo,produto.linha',
+      expand:
+        'produto,produto.tipo,produto.linha,produto.atr01,produto.atr02,produto.atr03,produto.atr04,produto.atr05,produto.atr06,produto.atr07,produto.atr08,produto.atr09',
     })
     return { orcamento, itens }
   },
@@ -54,7 +55,8 @@ export const orcamentosService = {
   async getItensForOrcamento(orcamentoId: string) {
     return pb.collection('orcamento_itens').getFullList<OrcamentoItemRecord>({
       filter: `orcamento = "${orcamentoId}"`,
-      expand: 'produto,produto.tipo,produto.linha',
+      expand:
+        'produto,produto.tipo,produto.linha,produto.atr01,produto.atr02,produto.atr03,produto.atr04,produto.atr05,produto.atr06,produto.atr07,produto.atr08,produto.atr09',
     })
   },
 

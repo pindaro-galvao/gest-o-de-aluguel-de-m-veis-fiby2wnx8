@@ -2,7 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { produtosService } from '@/services/produtos'
 import { categoriasService } from '@/services/categorias'
 import { linhasService } from '@/services/linhas'
-import type { ProdutoRecord, CategoriaRecord, LinhaRecord } from '@/types/database'
+import { atributosService } from '@/services/atributos'
+import type { ProdutoRecord, CategoriaRecord, LinhaRecord, AtributoRecord } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,12 +26,13 @@ import {
 } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
-import { Armchair, Plus, Search, Edit3, Trash2, Package } from 'lucide-react'
+import { Armchair, Plus, Search, Edit3, Trash2, Package, Palette, AlertCircle } from 'lucide-react'
 
 export default function AdminProdutos() {
   const [produtos, setProdutos] = useState<ProdutoRecord[]>([])
   const [categorias, setCategorias] = useState<CategoriaRecord[]>([])
   const [linhas, setLinhas] = useState<LinhaRecord[]>([])
+  const [atributos, setAtributos] = useState<AtributoRecord[]>([])
   const [loading, setLoading] = useState(true)
 
   // Filtros
@@ -52,20 +54,34 @@ export default function AdminProdutos() {
   const [quantidadeEstoque, setQuantidadeEstoque] = useState<number>(1)
   const [valorLocacaoMensal, setValorLocacaoMensal] = useState<number>(200)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
+
+  // 9 Atributos ATR01..ATR09
+  const [atr01, setAtr01] = useState('NONE')
+  const [atr02, setAtr02] = useState('NONE')
+  const [atr03, setAtr03] = useState('NONE')
+  const [atr04, setAtr04] = useState('NONE')
+  const [atr05, setAtr05] = useState('NONE')
+  const [atr06, setAtr06] = useState('NONE')
+  const [atr07, setAtr07] = useState('NONE')
+  const [atr08, setAtr08] = useState('NONE')
+  const [atr09, setAtr09] = useState('NONE')
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [isSaving, setIsSaving] = useState(false)
 
   const loadData = async () => {
     try {
       setLoading(true)
-      const [pList, cList, lList] = await Promise.all([
+      const [pList, cList, lList, aList] = await Promise.all([
         produtosService.getAll(),
         categoriasService.getAll(),
         linhasService.getAll(),
+        atributosService.getAll(),
       ])
       setProdutos(pList)
       setCategorias(cList)
       setLinhas(lList)
+      setAtributos(aList)
     } catch (err) {
       console.error(err)
       toast({
@@ -92,6 +108,9 @@ export default function AdminProdutos() {
   useRealtime<LinhaRecord>('linhas', () => {
     loadData()
   })
+  useRealtime<AtributoRecord>('atributos', () => {
+    loadData()
+  })
 
   // Lista de categorias para o formulário:
   // Se for criação: apenas ativas
@@ -115,6 +134,43 @@ export default function AdminProdutos() {
     })
   }, [linhas, editingProduto])
 
+  // Lista de atributos para os selects do formulário:
+  // Disponíveis: ativos + já selecionados no produto atual
+  const formAtributos = useMemo(() => {
+    return atributos.filter((a) => {
+      if (a.ativo !== false) return true
+      if (editingProduto) {
+        const selected = [
+          editingProduto.atr01,
+          editingProduto.atr02,
+          editingProduto.atr03,
+          editingProduto.atr04,
+          editingProduto.atr05,
+          editingProduto.atr06,
+          editingProduto.atr07,
+          editingProduto.atr08,
+          editingProduto.atr09,
+        ]
+        if (selected.includes(a.id)) return true
+      }
+      return false
+    })
+  }, [atributos, editingProduto])
+
+  // Checagem se algum atributo foi duplicado entre os 9 campos
+  const atributosDuplicadosAviso = useMemo(() => {
+    const list = [atr01, atr02, atr03, atr04, atr05, atr06, atr07, atr08, atr09].filter(
+      (id) => id && id !== 'NONE',
+    )
+    const countsAtr: Record<string, number> = {}
+    let hasDup = false
+    for (const id of list) {
+      countsAtr[id] = (countsAtr[id] || 0) + 1
+      if (countsAtr[id] > 1) hasDup = true
+    }
+    return hasDup
+  }, [atr01, atr02, atr03, atr04, atr05, atr06, atr07, atr08, atr09])
+
   const openCreateModal = () => {
     setEditingProduto(null)
     setCodigo('')
@@ -128,6 +184,15 @@ export default function AdminProdutos() {
     setQuantidadeEstoque(1)
     setValorLocacaoMensal(250)
     setFotoFile(null)
+    setAtr01('NONE')
+    setAtr02('NONE')
+    setAtr03('NONE')
+    setAtr04('NONE')
+    setAtr05('NONE')
+    setAtr06('NONE')
+    setAtr07('NONE')
+    setAtr08('NONE')
+    setAtr09('NONE')
     setFormErrors({})
     setIsModalOpen(true)
   }
@@ -143,6 +208,15 @@ export default function AdminProdutos() {
     setQuantidadeEstoque(p.quantidade_estoque || 0)
     setValorLocacaoMensal(p.valor_locacao_mensal || 0)
     setFotoFile(null)
+    setAtr01(p.atr01 || 'NONE')
+    setAtr02(p.atr02 || 'NONE')
+    setAtr03(p.atr03 || 'NONE')
+    setAtr04(p.atr04 || 'NONE')
+    setAtr05(p.atr05 || 'NONE')
+    setAtr06(p.atr06 || 'NONE')
+    setAtr07(p.atr07 || 'NONE')
+    setAtr08(p.atr08 || 'NONE')
+    setAtr09(p.atr09 || 'NONE')
     setFormErrors({})
     setIsModalOpen(true)
   }
@@ -189,6 +263,22 @@ export default function AdminProdutos() {
       formData.append('valor_locacao_mensal', String(valorLocacaoMensal))
       if (fotoFile) {
         formData.append('foto', fotoFile)
+      }
+
+      // Adicionar os 9 atributos (vazio quando 'NONE' para desvincular)
+      const atrMap: Record<string, string> = {
+        atr01,
+        atr02,
+        atr03,
+        atr04,
+        atr05,
+        atr06,
+        atr07,
+        atr08,
+        atr09,
+      }
+      for (const [key, val] of Object.entries(atrMap)) {
+        formData.append(key, val === 'NONE' ? '' : val)
       }
 
       if (editingProduto) {
@@ -267,12 +357,36 @@ export default function AdminProdutos() {
     const nomeCategoria = p.expand?.tipo?.nome?.toLowerCase() || ''
     const nomeLinha = p.expand?.linha?.nome?.toLowerCase() || ''
 
+    // Buscar também pelos atributos vinculados (código ou descrição)
+    const atrStrings: string[] = []
+    const atrKeys: (keyof NonNullable<ProdutoRecord['expand']>)[] = [
+      'atr01',
+      'atr02',
+      'atr03',
+      'atr04',
+      'atr05',
+      'atr06',
+      'atr07',
+      'atr08',
+      'atr09',
+    ]
+    if (p.expand) {
+      for (const k of atrKeys) {
+        const atrObj = p.expand[k] as AtributoRecord | undefined
+        if (atrObj) {
+          if (atrObj.codigo_atr) atrStrings.push(atrObj.codigo_atr.toLowerCase())
+          if (atrObj.descricao_atr) atrStrings.push(atrObj.descricao_atr.toLowerCase())
+        }
+      }
+    }
+
     const codigoTerm = p.codigo ? p.codigo.toLowerCase() : ''
     const matchSearch =
       codigoTerm.includes(term) ||
       p.nome.toLowerCase().includes(term) ||
       nomeLinha.includes(term) ||
       nomeCategoria.includes(term) ||
+      atrStrings.some((s) => s.includes(term)) ||
       (p.descricao && p.descricao.toLowerCase().includes(term))
 
     return matchTipo && matchLinha && matchSearch
@@ -432,6 +546,48 @@ export default function AdminProdutos() {
                     {p.descricao && (
                       <p className="text-xs text-[#6B6B6B] line-clamp-2">{p.descricao}</p>
                     )}
+                    {/* Chips discretos de Atributos Vinculados (regra: vazio não aparece e não quebra) */}
+                    {(() => {
+                      const chips: Array<{ id: string; codigo: string; desc: string }> = []
+                      const keys: (keyof NonNullable<ProdutoRecord['expand']>)[] = [
+                        'atr01',
+                        'atr02',
+                        'atr03',
+                        'atr04',
+                        'atr05',
+                        'atr06',
+                        'atr07',
+                        'atr08',
+                        'atr09',
+                      ]
+                      if (p.expand) {
+                        for (const k of keys) {
+                          const atrRec = p.expand[k] as AtributoRecord | undefined
+                          if (atrRec && atrRec.codigo_atr) {
+                            chips.push({
+                              id: atrRec.id,
+                              codigo: atrRec.codigo_atr,
+                              desc: atrRec.descricao_atr || atrRec.codigo_atr,
+                            })
+                          }
+                        }
+                      }
+                      if (chips.length === 0) return null
+
+                      return (
+                        <div className="pt-1.5 flex flex-wrap gap-1 items-center">
+                          {chips.map((chip, idx) => (
+                            <span
+                              key={`${chip.id}-${idx}`}
+                              title={`${chip.codigo} — ${chip.desc}`}
+                              className="inline-flex items-center text-[10px] font-medium bg-[#F4F1EA] text-[#6B6B6B] border border-[#E5E0DA] px-2 py-0.5 rounded-md hover:text-[#2B2B2B] hover:border-[#A67C52] transition-colors"
+                            >
+                              {chip.desc}
+                            </span>
+                          ))}
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
 
@@ -633,7 +789,7 @@ export default function AdminProdutos() {
               </Label>
               <Textarea
                 id="prodDesc"
-                rows={3}
+                rows={2}
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
                 placeholder="Detalhes de materiais, corda náutica, estrutura de alumínio, tecidos..."
@@ -658,7 +814,59 @@ export default function AdminProdutos() {
               />
             </div>
 
+            {/* Seção ATRIBUTOS: 9 selects (ATR01 a ATR09) alimentados pela coleção atributos */}
+            <div className="rounded-xl border border-[#E5E0DA] bg-[#FAF7F3] p-3.5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#2B2B2B]">
+                  <Palette className="h-4 w-4 text-[#A67C52]" />
+                  <span>Atributos do Móvel (Cores, Tecidos & Acabamentos)</span>
+                </div>
+                <span className="text-[11px] text-[#8C8C8C]">ATR01 a ATR09 (todos opcionais)</span>
+              </div>
+
+              {atributosDuplicadosAviso && (
+                <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs text-amber-800">
+                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span>
+                    Aviso: o mesmo atributo foi selecionado em mais de um campo deste produto.
+                  </span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {[
+                  { label: 'ATR01', val: atr01, setVal: setAtr01 },
+                  { label: 'ATR02', val: atr02, setVal: setAtr02 },
+                  { label: 'ATR03', val: atr03, setVal: setAtr03 },
+                  { label: 'ATR04', val: atr04, setVal: setAtr04 },
+                  { label: 'ATR05', val: atr05, setVal: setAtr05 },
+                  { label: 'ATR06', val: atr06, setVal: setAtr06 },
+                  { label: 'ATR07', val: atr07, setVal: setAtr07 },
+                  { label: 'ATR08', val: atr08, setVal: setAtr08 },
+                  { label: 'ATR09', val: atr09, setVal: setAtr09 },
+                ].map((item) => (
+                  <div key={item.label} className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-[#6B6B6B]">{item.label}</Label>
+                    <Select value={item.val} onValueChange={item.setVal}>
+                      <SelectTrigger className="bg-white border-[#E5E0DA] h-8 text-xs">
+                        <SelectValue placeholder="—" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-56">
+                        <SelectItem value="NONE">— (vazio)</SelectItem>
+                        {formAtributos.map((atr) => (
+                          <SelectItem key={atr.id} value={atr.id} className="text-xs">
+                            {atr.codigo_atr} — {atr.descricao_atr}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <DialogFooter className="pt-4">
+              {' '}
               <Button
                 type="button"
                 variant="outline"

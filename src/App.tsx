@@ -21,6 +21,7 @@ import AdminUsuarios from './pages/admin/AdminUsuarios'
 import AdminProdutos from './pages/admin/AdminProdutos'
 import AdminCategorias from './pages/admin/AdminCategorias'
 import AdminLinhas from './pages/admin/AdminLinhas'
+import AdminAtributos from './pages/admin/AdminAtributos'
 import AdminRelatorios from './pages/admin/AdminRelatorios'
 
 // Vendas & Orçamentos Pages
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/admin/produtos" element={<AdminProdutos />} />
             <Route path="/admin/categorias" element={<AdminCategorias />} />
             <Route path="/admin/linhas" element={<AdminLinhas />} />
+            <Route path="/admin/atributos" element={<AdminAtributos />} />
             <Route path="/admin/relatorios" element={<AdminRelatorios />} />
             <Route path="/admin/vendas" element={<VendasList isAdminView={true} />} />
             <Route path="/admin/orcamentos" element={<OrcamentosList isAdminView={true} />} />

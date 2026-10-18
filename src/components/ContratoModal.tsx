@@ -1,5 +1,5 @@
 import React from 'react'
-import type { VendaRecord } from '@/types/database'
+import type { VendaRecord, AtributoRecord } from '@/types/database'
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,31 @@ interface ContratoModalProps {
 }
 
 export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps) {
+  // Coleta lista de atributos vinculados ao produto (executado incondicionalmente)
+  const atributosDescricoes = React.useMemo(() => {
+    const prod = venda?.expand?.produto
+    if (!prod || !prod.expand) return []
+    const keys: (keyof NonNullable<typeof prod.expand>)[] = [
+      'atr01',
+      'atr02',
+      'atr03',
+      'atr04',
+      'atr05',
+      'atr06',
+      'atr07',
+      'atr08',
+      'atr09',
+    ]
+    const list: string[] = []
+    for (const k of keys) {
+      const atrRec = prod.expand[k] as AtributoRecord | undefined
+      if (atrRec && (atrRec.descricao_atr || atrRec.codigo_atr)) {
+        list.push(atrRec.descricao_atr || atrRec.codigo_atr)
+      }
+    }
+    return list
+  }, [venda])
+
   if (!venda) return null
 
   const formatCurrency = (val: number) => {
@@ -181,6 +206,12 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
                     {venda.expand?.produto?.descricao && (
                       <div className="text-[11px] text-[#6B6B6B] mt-0.5 max-w-md">
                         {venda.expand.produto.descricao}
+                      </div>
+                    )}
+                    {atributosDescricoes.length > 0 && (
+                      <div className="text-[11px] text-[#2B2B2B] mt-1 bg-[#FAF7F3] p-1.5 rounded border border-[#E5E0DA]/80">
+                        <strong className="text-[#A67C52]">Atributos (Cores & Materiais):</strong>{' '}
+                        <span>{atributosDescricoes.join(', ')}</span>
                       </div>
                     )}
                   </td>

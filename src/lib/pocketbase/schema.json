@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T17:18:57.312Z",
+  "generatedAt": "2026-10-18T17:28:52.808Z",
   "collections": [
     {
       "name": "users",
@@ -143,6 +143,69 @@
           "type": "text",
           "required": true,
           "system": false
+        },
+        {
+          "name": "atr01",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "atributos"
+        },
+        {
+          "name": "atr02",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "atributos"
+        },
+        {
+          "name": "atr03",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "atributos"
+        },
+        {
+          "name": "atr04",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "atributos"
+        },
+        {
+          "name": "atr05",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "atributos"
+        },
+        {
+          "name": "atr06",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "atributos"
+        },
+        {
+          "name": "atr07",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "atributos"
+        },
+        {
+          "name": "atr08",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "atributos"
+        },
+        {
+          "name": "atr09",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "atributos"
         }
       ],
       "indexes": [
@@ -547,6 +610,52 @@
         "CREATE UNIQUE INDEX idx_linhas_nome ON linhas (nome)",
         "CREATE INDEX idx_linhas_ordem ON linhas (ordem)"
       ]
+    },
+    {
+      "name": "atributos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.role = 'ADMIN'",
+        "update": "@request.auth.role = 'ADMIN'",
+        "delete": "@request.auth.role = 'ADMIN'"
+      },
+      "fields": [
+        {
+          "name": "codigo_atr",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao_atr",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_atributos_codigo_atr ON atributos (codigo_atr)"]
     }
   ]
 }

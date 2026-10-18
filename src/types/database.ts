@@ -24,6 +24,12 @@ export interface LinhaRecord extends RecordModel {
   ativo: boolean
 }
 
+export interface AtributoRecord extends RecordModel {
+  codigo_atr: string
+  descricao_atr: string
+  ativo?: boolean
+}
+
 // Mantido como type para compatibilidade onde string for exibida
 export type TipoProduto = string
 
@@ -37,9 +43,27 @@ export interface ProdutoRecord extends RecordModel {
   quantidade_estoque: number
   valor_locacao_mensal: number
   foto?: string
+  atr01?: string // relation -> atributos
+  atr02?: string
+  atr03?: string
+  atr04?: string
+  atr05?: string
+  atr06?: string
+  atr07?: string
+  atr08?: string
+  atr09?: string
   expand?: {
     tipo?: CategoriaRecord
     linha?: LinhaRecord
+    atr01?: AtributoRecord
+    atr02?: AtributoRecord
+    atr03?: AtributoRecord
+    atr04?: AtributoRecord
+    atr05?: AtributoRecord
+    atr06?: AtributoRecord
+    atr07?: AtributoRecord
+    atr08?: AtributoRecord
+    atr09?: AtributoRecord
   }
 }
 

@@ -213,6 +213,41 @@ export default function ClienteRelatorio() {
                       Dimensões: {v.expand?.produto?.dimensoes}
                     </p>
                   )}
+                  {(() => {
+                    const prod = v.expand?.produto
+                    if (!prod || !prod.expand) return null
+                    const atrKeys = [
+                      'atr01',
+                      'atr02',
+                      'atr03',
+                      'atr04',
+                      'atr05',
+                      'atr06',
+                      'atr07',
+                      'atr08',
+                      'atr09',
+                    ] as const
+                    const chips: string[] = []
+                    for (const k of atrKeys) {
+                      const atrObj = prod.expand[k]
+                      if (atrObj && (atrObj.descricao_atr || atrObj.codigo_atr)) {
+                        chips.push(atrObj.descricao_atr || atrObj.codigo_atr)
+                      }
+                    }
+                    if (chips.length === 0) return null
+                    return (
+                      <div className="pt-1 flex flex-wrap gap-1 items-center">
+                        {chips.map((item, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[10px] font-medium bg-[#FAF7F3] text-[#6B6B6B] border border-[#E5E0DA] px-2 py-0.5 rounded-md"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    )
+                  })()}
                   {v.observacoes && (
                     <p className="text-xs text-[#6B6B6B] italic mt-1 bg-white/70 p-1.5 rounded border border-[#E5E0DA]">
                       {v.observacoes}

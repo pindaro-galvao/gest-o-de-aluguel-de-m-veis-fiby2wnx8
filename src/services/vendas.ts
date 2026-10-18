@@ -1,18 +1,21 @@
 import pb from '@/lib/pocketbase/client'
 import type { VendaRecord } from '@/types/database'
 
+const VENDA_EXPAND =
+  'cliente,produto,produto.tipo,produto.linha,produto.atr01,produto.atr02,produto.atr03,produto.atr04,produto.atr05,produto.atr06,produto.atr07,produto.atr08,produto.atr09,vendedor'
+
 export const vendasService = {
   async getAll(params?: { filter?: string; sort?: string }) {
     return pb.collection('vendas').getFullList<VendaRecord>({
       sort: params?.sort || '-created',
       filter: params?.filter || '',
-      expand: 'cliente,produto,produto.tipo,produto.linha,vendedor',
+      expand: VENDA_EXPAND,
     })
   },
 
   async getById(id: string) {
     return pb.collection('vendas').getOne<VendaRecord>(id, {
-      expand: 'cliente,produto,produto.tipo,produto.linha,vendedor',
+      expand: VENDA_EXPAND,
     })
   },
 
@@ -29,13 +32,13 @@ export const vendasService = {
   }) {
     // Vendedor é gravado automaticamente pelo backend hook, mas podemos passar seguro
     return pb.collection('vendas').create<VendaRecord>(data, {
-      expand: 'cliente,produto,produto.tipo,produto.linha,vendedor',
+      expand: VENDA_EXPAND,
     })
   },
 
   async update(id: string, data: Partial<VendaRecord>) {
     return pb.collection('vendas').update<VendaRecord>(id, data, {
-      expand: 'cliente,produto,produto.tipo,produto.linha,vendedor',
+      expand: VENDA_EXPAND,
     })
   },
 

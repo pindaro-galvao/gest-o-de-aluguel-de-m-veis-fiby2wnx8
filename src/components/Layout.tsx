@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ShieldAlert,
   Sparkles,
+  Palette,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -188,6 +189,20 @@ export default function Layout() {
                 >
                   <Sparkles className="h-4 w-4" />
                   Linhas
+                </NavLink>
+                <NavLink
+                  to="/admin/atributos"
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[#A67C52] text-white'
+                        : 'text-[#D0D0D0] hover:bg-[#383838] hover:text-white'
+                    }`
+                  }
+                >
+                  <Palette className="h-4 w-4" />
+                  Atributos
                 </NavLink>
                 <NavLink
                   to="/admin/relatorios"
@@ -379,6 +394,7 @@ export default function Layout() {
     if (path === '/admin/produtos') return 'Catálogo de Produtos TIDELLI'
     if (path === '/admin/categorias') return 'Gestão de Categorias'
     if (path === '/admin/linhas') return 'Gestão de Linhas TIDELLI'
+    if (path === '/admin/atributos') return 'Gestão de Atributos (Cores & Materiais)'
     if (path === '/admin/relatorios') return 'Relatórios Gerais Consolidados'
     if (path === '/admin/vendas' || path === '/vendas') return 'Gestão de Vendas & Locações'
     if (path === '/admin/orcamentos' || path === '/orcamentos') return 'Orçamentos & Cotações'
