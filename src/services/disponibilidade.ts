@@ -143,6 +143,7 @@ export const disponibilidadeService = {
     dataFimStr: string,
     quantidadeSolicitada: number = 1,
     vendaIgnoradaId?: string,
+    orcamentoIgnoradoId?: string,
   ): Promise<DisponibilidadeResultado> {
     const produtoId = typeof produto === 'string' ? produto : produto.id
     let estoque = typeof produto === 'object' ? produto.quantidade_estoque : 0
@@ -194,9 +195,19 @@ export const disponibilidadeService = {
       itensAprovados = orcItens
         .map((it) => ({
           quantidade: it.quantidade || 0,
+          orcamentoId: it.orcamento,
           orcamento: it.expand?.orcamento as unknown as OrcamentoRecord,
         }))
-        .filter((it) => it.orcamento && it.orcamento.status === 'aprovado')
+        .filter((it) => {
+          if (!it.orcamento || it.orcamento.status !== 'aprovado') return false
+          if (
+            orcamentoIgnoradoId &&
+            (it.orcamentoId === orcamentoIgnoradoId || it.orcamento.id === orcamentoIgnoradoId)
+          ) {
+            return false
+          }
+          return true
+        })
     } catch (e) {
       console.error('Erro ao buscar itens de orcamentos aprovados:', e)
     }

@@ -53,6 +53,46 @@ export const orcamentosService = {
     return orcamento
   },
 
+  async update(
+    id: string,
+    data: {
+      cliente: string
+      valor_total: number
+      validade: string
+      observacoes?: string
+      data_inicio?: string
+      data_fim?: string
+      endereco?: string
+    },
+    itens: Array<{ produto: string; quantidade: number }>,
+  ) {
+    const payload = {
+      ...data,
+      observacoes: data.observacoes ? data.observacoes.trim().toUpperCase() : '',
+    }
+    const orcamento = await pb.collection('orcamentos').update<OrcamentoRecord>(id, payload, {
+      expand: 'cliente,vendedor,endereco',
+    })
+
+    // Sincronizar itens: remove existentes e recria
+    const itensAntigos = await pb.collection('orcamento_itens').getFullList<OrcamentoItemRecord>({
+      filter: `orcamento = "${id}"`,
+    })
+    for (const itemAntigo of itensAntigos) {
+      await pb.collection('orcamento_itens').delete(itemAntigo.id)
+    }
+
+    for (const item of itens) {
+      await pb.collection('orcamento_itens').create<OrcamentoItemRecord>({
+        orcamento: id,
+        produto: item.produto,
+        quantidade: item.quantidade,
+      })
+    }
+
+    return orcamento
+  },
+
   async updateStatus(
     id: string,
     status: string,

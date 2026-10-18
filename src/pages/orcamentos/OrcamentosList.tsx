@@ -61,6 +61,7 @@ import {
   ShoppingCart,
   Send,
   HelpCircle,
+  Pencil,
 } from 'lucide-react'
 import { GerenciadorEnderecos } from '@/components/GerenciadorEnderecos'
 
@@ -80,9 +81,10 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('TODOS')
 
-  // Modal Novo Orçamento
+  // Modal Novo Orçamento / Edição
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [editingOrcamentoId, setEditingOrcamentoId] = useState<string | null>(null)
 
   // Form de Novo Orçamento
   const [clienteId, setClienteId] = useState('')
@@ -172,9 +174,15 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
       .then((ends) => {
         if (!isMounted) return
         setClienteEnderecos(ends)
-        // Pré-seleciona o endereço principal por padrão, ou o primeiro disponível
-        const princ = ends.find((e) => e.principal) || ends[0]
-        setEnderecoId(princ?.id || '')
+        // Se já houver um enderecoId válido para este cliente (ex: carregado na edição), mantém;
+        // senão pré-seleciona o principal por padrão ou o primeiro disponível
+        setEnderecoId((prev) => {
+          if (prev && ends.some((e) => e.id === prev)) {
+            return prev
+          }
+          const princ = ends.find((e) => e.principal) || ends[0]
+          return princ?.id || ''
+        })
         setLoadingEnderecos(false)
       })
       .catch((e) => {
@@ -187,7 +195,25 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
     }
   }, [clienteId])
 
+  /**
+   * Verifica se o usuário atual pode editar o orçamento especificado:
+   * 1. ADMIN pode editar qualquer orçamento
+   * 2. VENDEDOR pode editar somente orçamentos dele (vendedor = user.id)
+   * 3. CLIENTE não pode editar
+   * 4. Somente status EXCETO 'aprovado' e 'convertido'
+   */
+  const podeEditarOrcamento = (orc: OrcamentoRecord): boolean => {
+    if (role === 'CLIENTE') return false
+    if (orc.status === 'aprovado' || orc.status === 'convertido') return false
+    if (role === 'ADMIN') return true
+    if (role === 'VENDEDOR') {
+      return orc.vendedor === user?.id
+    }
+    return false
+  }
+
   const openCreateModal = () => {
+    setEditingOrcamentoId(null)
     const initialCliente = clientes[0]?.id || ''
     setClienteId(initialCliente)
 
@@ -208,6 +234,55 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
       setItens([])
     }
     setFormErrors({})
+    setIsModalOpen(true)
+  }
+
+  const openEditModal = async (orc: OrcamentoRecord) => {
+    if (!podeEditarOrcamento(orc)) {
+      toast({
+        variant: 'destructive',
+        title: 'Edição não permitida',
+        description:
+          'Você não tem permissão para alterar este orçamento ou ele já foi aprovado/convertido.',
+      })
+      return
+    }
+
+    setEditingOrcamentoId(orc.id)
+    setClienteId(orc.cliente)
+    setEnderecoId(orc.endereco || '')
+
+    const dIni = orc.data_inicio ? formatDataISO(orc.data_inicio) : ''
+    const dFim = orc.data_fim ? formatDataISO(orc.data_fim) : ''
+    const dVal = orc.validade ? formatDataISO(orc.validade) : ''
+
+    setDataInicio(dIni)
+    setDataFim(dFim)
+    setValidade(dVal)
+    setObservacoes(orc.observacoes || '')
+    setFormErrors({})
+
+    try {
+      const itensRes = await orcamentosService.getItensForOrcamento(orc.id)
+      if (itensRes.length > 0) {
+        setItens(
+          itensRes.map((it) => ({
+            produtoId: it.produto,
+            quantidade: it.quantidade || 1,
+          })),
+        )
+      } else if (produtos.length > 0) {
+        setItens([{ produtoId: produtos[0].id, quantidade: 1 }])
+      } else {
+        setItens([])
+      }
+    } catch (e) {
+      console.error('Erro ao buscar itens para edição:', e)
+      setItens([])
+    }
+
+    // Fecha o modal de detalhe se estiver aberto ao disparar a edição
+    setIsDetalheOpen(false)
     setIsModalOpen(true)
   }
 
@@ -268,6 +343,8 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
             dataInicio,
             dataFim,
             item.quantidade,
+            undefined,
+            editingOrcamentoId || undefined,
           )
           resultados[item.produtoId] = res
         } catch {
@@ -319,35 +396,62 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
 
     setIsSaving(true)
     try {
-      await orcamentosService.create(
-        {
-          cliente: clienteId,
-          endereco: enderecoId || undefined,
-          valor_total: totalCalculado,
-          validade: new Date(validade).toISOString(),
-          data_inicio: dataInicio ? `${dataInicio} 00:00:00.000Z` : undefined,
-          data_fim: dataFim ? `${dataFim} 00:00:00.000Z` : undefined,
-          status: 'enviado',
-          observacoes: observacoes.trim().toUpperCase(),
-        },
-        itens.map((it) => ({
-          produto: it.produtoId,
-          quantidade: it.quantidade,
-        })),
-      )
+      if (editingOrcamentoId) {
+        // MODO EDIÇÃO: mantém o status atual do orçamento
+        await orcamentosService.update(
+          editingOrcamentoId,
+          {
+            cliente: clienteId,
+            endereco: enderecoId || undefined,
+            valor_total: totalCalculado,
+            validade: new Date(validade).toISOString(),
+            data_inicio: dataInicio ? `${dataInicio} 00:00:00.000Z` : undefined,
+            data_fim: dataFim ? `${dataFim} 00:00:00.000Z` : undefined,
+            observacoes: observacoes.trim().toUpperCase(),
+          },
+          itens.map((it) => ({
+            produto: it.produtoId,
+            quantidade: it.quantidade,
+          })),
+        )
 
-      toast({
-        title: 'Orçamento gerado com sucesso!',
-        description: 'Cotação enviada ao cliente com vendedor registrado automaticamente.',
-      })
+        toast({
+          title: 'Orçamento atualizado com sucesso!',
+          description: 'As alterações na cotação e nos móveis foram salvas mantendo o status.',
+        })
+      } else {
+        // MODO CRIAÇÃO
+        await orcamentosService.create(
+          {
+            cliente: clienteId,
+            endereco: enderecoId || undefined,
+            valor_total: totalCalculado,
+            validade: new Date(validade).toISOString(),
+            data_inicio: dataInicio ? `${dataInicio} 00:00:00.000Z` : undefined,
+            data_fim: dataFim ? `${dataFim} 00:00:00.000Z` : undefined,
+            status: 'enviado',
+            observacoes: observacoes.trim().toUpperCase(),
+          },
+          itens.map((it) => ({
+            produto: it.produtoId,
+            quantidade: it.quantidade,
+          })),
+        )
+
+        toast({
+          title: 'Orçamento gerado com sucesso!',
+          description: 'Cotação enviada ao cliente com vendedor registrado automaticamente.',
+        })
+      }
 
       setIsModalOpen(false)
+      setEditingOrcamentoId(null)
       loadData()
     } catch (err: unknown) {
       console.error(err)
       toast({
         variant: 'destructive',
-        title: 'Erro ao criar orçamento',
+        title: editingOrcamentoId ? 'Erro ao alterar orçamento' : 'Erro ao criar orçamento',
         description: err instanceof Error ? err.message : 'Verifique os dados informados.',
       })
     } finally {
@@ -891,6 +995,20 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                   </td>
                   <td className="px-4 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">
+                      {/* Botão de Editar direto na tabela se for Vendedor/Admin e status editável */}
+                      {podeEditarOrcamento(o) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditModal(o)}
+                          className="h-8 gap-1 text-xs border-[#A67C52] text-[#A67C52] hover:bg-[#FAF7F3]"
+                          title="Editar Orçamento"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          <span className="hidden sm:inline">Editar</span>
+                        </Button>
+                      )}
+
                       {/* Botão de Reenviar direto na tabela se o status for expirado */}
                       {getStatusEfetivo(o) === 'expirado' && (
                         <Button
@@ -941,16 +1059,25 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
         )}
       </div>
 
-      {/* Modal Criar Novo Orçamento */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      {/* Modal Criar Novo Orçamento / Editar Orçamento */}
+      <Dialog
+        open={isModalOpen}
+        onOpenChange={(open) => {
+          setIsModalOpen(open)
+          if (!open) setEditingOrcamentoId(null)
+        }}
+      >
         <DialogContent className="max-w-2xl bg-white max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#2B2B2B]">
-              Gerar Novo Orçamento de Móveis
+              {editingOrcamentoId
+                ? 'Alterar Orçamento de Móveis'
+                : 'Gerar Novo Orçamento de Móveis'}
             </DialogTitle>
             <DialogDescription className="text-xs text-[#6B6B6B]">
-              Selecione o cliente, o período desejado e adicione os móveis TIDELLI para cálculo
-              diário.
+              {editingOrcamentoId
+                ? 'Atualize os dados do cliente, datas ou itens da proposta comercial. O status atual será preservado.'
+                : 'Selecione o cliente, o período desejado e adicione os móveis TIDELLI para cálculo diário.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -1255,7 +1382,10 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false)
+                  setEditingOrcamentoId(null)
+                }}
                 className="border-[#E5E0DA]"
               >
                 Cancelar
@@ -1265,7 +1395,13 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                 disabled={isSaving || !todosItensDisponiveis}
                 className="bg-[#A67C52] hover:bg-[#8C643F] text-white disabled:opacity-50"
               >
-                {isSaving ? 'Gerando...' : 'Enviar Orçamento'}
+                {isSaving
+                  ? editingOrcamentoId
+                    ? 'Salvando...'
+                    : 'Gerando...'
+                  : editingOrcamentoId
+                    ? 'Salvar Alterações'
+                    : 'Enviar Orçamento'}
               </Button>
             </DialogFooter>
           </form>
@@ -1489,16 +1625,31 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
               {/* Ações para VENDEDOR / ADMIN */}
               {role !== 'CLIENTE' && (
                 <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[#F1ECE6]">
-                  {/* Botão de Converter em Venda para status APROVADO */}
-                  {selectedOrcamento.status === 'aprovado' && (
-                    <Button
-                      onClick={() => handleAbrirConversao(selectedOrcamento)}
-                      className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs gap-1.5 shadow-xs"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                      <span>Converter em Venda</span>
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {/* Botão de Editar no modal de detalhes */}
+                    {podeEditarOrcamento(selectedOrcamento) && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => openEditModal(selectedOrcamento)}
+                        className="border-[#A67C52] text-[#A67C52] hover:bg-[#FAF7F3] text-xs gap-1 font-semibold"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span>Editar Orçamento</span>
+                      </Button>
+                    )}
+
+                    {/* Botão de Converter em Venda para status APROVADO */}
+                    {selectedOrcamento.status === 'aprovado' && (
+                      <Button
+                        onClick={() => handleAbrirConversao(selectedOrcamento)}
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs gap-1.5 shadow-xs"
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                        <span>Converter em Venda</span>
+                      </Button>
+                    )}
+                  </div>
 
                   {/* Vendedor/Admin também podem marcar como RECUSADO manualmente se souberem por outro canal */}
                   {selectedOrcamento.status === 'enviado' &&
