@@ -19,6 +19,7 @@ import {
   Sparkles,
   Palette,
   Calendar,
+  Settings,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -37,6 +38,7 @@ export default function Layout() {
 
   const [mobileOpen, setMobileOpen] = useState(false)
   const [adminMenuOpen, setAdminMenuOpen] = useState(true)
+  const [configMenuOpen, setConfigMenuOpen] = useState(true)
   const [vendasMenuOpen, setVendasMenuOpen] = useState(true)
 
   // Se rota pública (login, reset-password etc.), apenas renderiza a página sem Layout
@@ -163,6 +165,72 @@ export default function Layout() {
                   <Armchair className="h-4 w-4" />
                   Produtos TIDELLI
                 </NavLink>
+
+                {/* Submenu CONFIGURAÇÃO (Categorias, Linhas, Atributos) */}
+                <div className="pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setConfigMenuOpen(!configMenuOpen)}
+                    className="flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-semibold tracking-wider text-[#B0B0B0] uppercase hover:bg-[#383838] hover:text-[#FFFFFF] transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-3.5 w-3.5 text-[#A67C52]" />
+                      <span>CONFIGURAÇÃO</span>
+                    </div>
+                    {configMenuOpen ? (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                  {configMenuOpen && (
+                    <div className="ml-3 mt-1 flex flex-col gap-1 border-l border-[#505050] pl-2">
+                      <NavLink
+                        to="/admin/categorias"
+                        onClick={() => setMobileOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                            isActive
+                              ? 'bg-[#A67C52] text-white'
+                              : 'text-[#D0D0D0] hover:bg-[#383838] hover:text-white'
+                          }`
+                        }
+                      >
+                        <Layers className="h-3.5 w-3.5" />
+                        CATEGORIAS
+                      </NavLink>
+                      <NavLink
+                        to="/admin/linhas"
+                        onClick={() => setMobileOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                            isActive
+                              ? 'bg-[#A67C52] text-white'
+                              : 'text-[#D0D0D0] hover:bg-[#383838] hover:text-white'
+                          }`
+                        }
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        LINHAS
+                      </NavLink>
+                      <NavLink
+                        to="/admin/atributos"
+                        onClick={() => setMobileOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                            isActive
+                              ? 'bg-[#A67C52] text-white'
+                              : 'text-[#D0D0D0] hover:bg-[#383838] hover:text-white'
+                          }`
+                        }
+                      >
+                        <Palette className="h-3.5 w-3.5" />
+                        ATRIBUTOS
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
+
                 <NavLink
                   to="/admin/calendario"
                   onClick={() => setMobileOpen(false)}
@@ -176,48 +244,6 @@ export default function Layout() {
                 >
                   <Calendar className="h-4 w-4" />
                   Calendário de Ocupação
-                </NavLink>
-                <NavLink
-                  to="/admin/categorias"
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[#A67C52] text-white'
-                        : 'text-[#D0D0D0] hover:bg-[#383838] hover:text-white'
-                    }`
-                  }
-                >
-                  <Layers className="h-4 w-4" />
-                  Categorias
-                </NavLink>
-                <NavLink
-                  to="/admin/linhas"
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[#A67C52] text-white'
-                        : 'text-[#D0D0D0] hover:bg-[#383838] hover:text-white'
-                    }`
-                  }
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Linhas
-                </NavLink>
-                <NavLink
-                  to="/admin/atributos"
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[#A67C52] text-white'
-                        : 'text-[#D0D0D0] hover:bg-[#383838] hover:text-white'
-                    }`
-                  }
-                >
-                  <Palette className="h-4 w-4" />
-                  Atributos
                 </NavLink>
                 <NavLink
                   to="/admin/relatorios"
