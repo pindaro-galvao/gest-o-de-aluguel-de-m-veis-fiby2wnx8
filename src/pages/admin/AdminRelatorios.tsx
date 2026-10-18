@@ -304,6 +304,7 @@ export default function AdminRelatorios() {
               <thead className="bg-[#FAF7F3] text-xs font-bold uppercase text-[#6B6B6B]">
                 <tr>
                   <th className="px-3 py-2.5 rounded-l-md">Cliente</th>
+                  <th className="px-3 py-2.5">Código</th>
                   <th className="px-3 py-2.5">Móvel</th>
                   <th className="px-3 py-2.5">Qtd</th>
                   <th className="px-3 py-2.5">Período</th>
@@ -317,11 +318,16 @@ export default function AdminRelatorios() {
                   <tr key={v.id} className="hover:bg-[#FAF7F3]">
                     <td className="px-3 py-2.5 font-medium">{v.expand?.cliente?.nome || '-'}</td>
                     <td className="px-3 py-2.5">
+                      <span className="font-mono text-xs font-bold text-[#A67C52] bg-[#FAF7F3] px-1.5 py-0.5 rounded border border-[#E5E0DA]">
+                        {v.expand?.produto?.codigo || '-'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
                       <div>{v.expand?.produto?.nome || '-'}</div>
                       {(v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha) && (
-                        <span className="text-[11px] text-[#A67C52] font-medium">
+                        <div className="text-[11px] text-[#A67C52] font-medium">
                           Linha {v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha}
-                        </span>
+                        </div>
                       )}
                     </td>
                     <td className="px-3 py-2.5">{v.quantidade}</td>

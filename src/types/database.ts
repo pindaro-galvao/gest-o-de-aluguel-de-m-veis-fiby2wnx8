@@ -28,6 +28,7 @@ export interface LinhaRecord extends RecordModel {
 export type TipoProduto = string
 
 export interface ProdutoRecord extends RecordModel {
+  codigo: string
   nome: string
   linha?: string // relation -> linhas
   tipo: string // relation -> categorias

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T17:03:01.565Z",
+  "generatedAt": "2026-10-18T17:18:57.312Z",
   "collections": [
     {
       "name": "users",
@@ -137,12 +137,19 @@
           "required": false,
           "system": false,
           "collectionRef": "linhas"
+        },
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": true,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_produtos_nome ON produtos (nome)",
         "CREATE INDEX `idx_produtos_tipo` ON `produtos` (tipo)",
-        "CREATE INDEX `idx_produtos_linha` ON `produtos` (linha)"
+        "CREATE INDEX `idx_produtos_linha` ON `produtos` (linha)",
+        "CREATE UNIQUE INDEX `idx_produtos_codigo` ON `produtos` (codigo)"
       ]
     },
     {

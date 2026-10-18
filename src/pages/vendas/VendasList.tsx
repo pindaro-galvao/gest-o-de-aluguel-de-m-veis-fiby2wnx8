@@ -227,6 +227,7 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
 
     const term = searchTerm.toLowerCase()
     const clienteNome = v.expand?.cliente?.nome?.toLowerCase() || ''
+    const produtoCodigo = v.expand?.produto?.codigo?.toLowerCase() || ''
     const produtoNome = v.expand?.produto?.nome?.toLowerCase() || ''
     const produtoLinha =
       (v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha)?.toLowerCase() || ''
@@ -234,6 +235,7 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
 
     return (
       clienteNome.includes(term) ||
+      produtoCodigo.includes(term) ||
       produtoNome.includes(term) ||
       produtoLinha.includes(term) ||
       vendedorNome.includes(term)
@@ -352,12 +354,19 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                     <div className="text-xs text-[#6B6B6B]">{v.expand?.cliente?.email}</div>
                   </td>
                   <td className="px-4 py-3.5 font-medium">
-                    <div>{v.expand?.produto?.nome || 'Móvel'}</div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {v.expand?.produto?.codigo && (
+                        <span className="font-mono text-xs font-bold text-[#A67C52] bg-[#FAF7F3] px-1.5 py-0.5 rounded border border-[#E5E0DA]">
+                          {v.expand.produto.codigo}
+                        </span>
+                      )}
+                      <span>{v.expand?.produto?.nome || 'Móvel'}</span>
+                    </div>
                     {(v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha) && (
-                      <div className="text-[11px] text-[#A67C52] font-semibold">
+                      <div className="text-[11px] text-[#A67C52] font-semibold mt-0.5">
                         Linha {v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha}
                       </div>
-                    )}{' '}
+                    )}
                   </td>
                   <td className="px-4 py-3.5">{v.quantidade} un.</td>
                   <td className="px-4 py-3.5 text-xs text-[#6B6B6B]">
@@ -463,6 +472,7 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                   <SelectContent>
                     {produtos.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
+                        {p.codigo ? `${p.codigo} — ` : ''}
                         {p.nome}
                         {p.expand?.linha?.nome
                           ? ` (Linha ${p.expand.linha.nome})`

@@ -156,6 +156,7 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
             <table className="w-full text-left text-xs border border-[#E5E0DA] rounded-lg overflow-hidden">
               <thead className="bg-[#FAF7F3] font-bold text-[#6B6B6B] uppercase border-b border-[#E5E0DA]">
                 <tr>
+                  <th className="px-3 py-2.5">Código</th>
                   <th className="px-3 py-2.5">Descrição do Produto</th>
                   <th className="px-3 py-2.5">Linha</th>
                   <th className="px-3 py-2.5 text-center">Qtd</th>
@@ -165,6 +166,9 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
               </thead>
               <tbody className="divide-y divide-[#E5E0DA]">
                 <tr>
+                  <td className="px-3 py-3 font-mono font-bold text-[#A67C52] text-xs align-top">
+                    {venda.expand?.produto?.codigo || '-'}
+                  </td>
                   <td className="px-3 py-3">
                     <div className="font-bold text-sm text-[#2B2B2B]">
                       {venda.expand?.produto?.nome || 'Móvel TIDELLI'}
@@ -180,16 +184,20 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
                       </div>
                     )}
                   </td>
-                  <td className="px-3 py-3 font-medium text-[#A67C52]">
+                  <td className="px-3 py-3 font-medium text-[#A67C52] align-top">
                     {venda.expand?.produto?.expand?.linha?.nome
                       ? `Linha ${venda.expand.produto.expand.linha.nome}`
                       : venda.expand?.produto?.linha
                         ? `Linha ${venda.expand.produto.linha}`
                         : 'Padrão TIDELLI'}
                   </td>
-                  <td className="px-3 py-3 text-center font-semibold">{venda.quantidade} un.</td>
-                  <td className="px-3 py-3 text-right">{formatCurrency(valorMensalUnitario)}</td>
-                  <td className="px-3 py-3 text-right font-bold text-[#A67C52]">
+                  <td className="px-3 py-3 text-center font-semibold align-top">
+                    {venda.quantidade} un.
+                  </td>
+                  <td className="px-3 py-3 text-right align-top">
+                    {formatCurrency(valorMensalUnitario)}
+                  </td>
+                  <td className="px-3 py-3 text-right font-bold text-[#A67C52] align-top">
                     {formatCurrency(valorTotalMensalItens)}
                   </td>
                 </tr>

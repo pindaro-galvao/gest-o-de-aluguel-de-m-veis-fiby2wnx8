@@ -335,15 +335,24 @@ export default function AdminDashboard() {
                       {v.expand?.cliente?.nome || 'Cliente não identificado'}
                     </td>
                     <td className="px-4 py-3.5">
-                      <div className="font-semibold text-xs">
-                        {v.expand?.produto?.nome || 'Produto'}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {v.expand?.produto?.codigo && (
+                          <span className="font-mono text-[10px] font-bold text-[#A67C52] bg-[#FAF7F3] px-1 py-0.5 rounded border border-[#E5E0DA]">
+                            {v.expand.produto.codigo}
+                          </span>
+                        )}
+                        <span className="font-semibold text-xs">
+                          {v.expand?.produto?.nome || 'Produto'}
+                        </span>
                       </div>
                       {(v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha) && (
-                        <div className="text-[11px] text-[#A67C52] font-medium">
+                        <div className="text-[11px] text-[#A67C52] font-medium mt-0.5">
                           Linha {v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha}
                         </div>
                       )}
-                      <div className="text-[11px] text-[#6B6B6B]">{v.quantidade} unidade(s)</div>
+                      <div className="text-[11px] text-[#6B6B6B] mt-0.5">
+                        {v.quantidade} unidade(s)
+                      </div>
                     </td>
                     <td className="px-4 py-3.5 text-xs text-[#6B6B6B]">
                       {v.expand?.vendedor?.name || v.expand?.vendedor?.email || '-'}

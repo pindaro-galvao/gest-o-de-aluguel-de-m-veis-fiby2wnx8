@@ -43,6 +43,7 @@ export default function AdminProdutos() {
   const [editingProduto, setEditingProduto] = useState<ProdutoRecord | null>(null)
 
   // Form Fields
+  const [codigo, setCodigo] = useState('')
   const [nome, setNome] = useState('')
   const [linhaId, setLinhaId] = useState('')
   const [tipoId, setTipoId] = useState('')
@@ -116,6 +117,7 @@ export default function AdminProdutos() {
 
   const openCreateModal = () => {
     setEditingProduto(null)
+    setCodigo('')
     setNome('')
     setLinhaId('NONE')
     // Categoria padrão: a primeira ativa ou vazia
@@ -132,6 +134,7 @@ export default function AdminProdutos() {
 
   const openEditModal = (p: ProdutoRecord) => {
     setEditingProduto(p)
+    setCodigo(p.codigo || '')
     setNome(p.nome)
     setLinhaId(p.linha || 'NONE')
     setTipoId(p.tipo || '')
@@ -146,6 +149,20 @@ export default function AdminProdutos() {
 
   const validate = () => {
     const errs: Record<string, string> = {}
+    const trimmedCodigo = codigo.trim()
+    if (!trimmedCodigo) {
+      errs.codigo = 'O código do móvel é obrigatório.'
+    } else {
+      const exists = produtos.some(
+        (p) =>
+          p.id !== editingProduto?.id &&
+          p.codigo?.trim().toLowerCase() === trimmedCodigo.toLowerCase(),
+      )
+      if (exists) {
+        errs.codigo = 'Código já existe em outro produto.'
+      }
+    }
+
     if (!nome.trim()) errs.nome = 'O nome do produto é obrigatório.'
     if (!tipoId || tipoId === 'NONE') errs.tipoId = 'A categoria é obrigatória.'
     if (quantidadeEstoque < 0) errs.quantidadeEstoque = 'Quantidade não pode ser negativa.'
@@ -162,6 +179,7 @@ export default function AdminProdutos() {
     setIsSaving(true)
     try {
       const formData = new FormData()
+      formData.append('codigo', codigo.trim())
       formData.append('nome', nome.trim())
       formData.append('tipo', tipoId)
       formData.append('linha', linhaId === 'NONE' ? '' : linhaId)
@@ -249,7 +267,9 @@ export default function AdminProdutos() {
     const nomeCategoria = p.expand?.tipo?.nome?.toLowerCase() || ''
     const nomeLinha = p.expand?.linha?.nome?.toLowerCase() || ''
 
+    const codigoTerm = p.codigo ? p.codigo.toLowerCase() : ''
     const matchSearch =
+      codigoTerm.includes(term) ||
       p.nome.toLowerCase().includes(term) ||
       nomeLinha.includes(term) ||
       nomeCategoria.includes(term) ||
@@ -377,6 +397,11 @@ export default function AdminProdutos() {
                         </span>
                       </div>
                     )}
+                    {p.codigo && (
+                      <Badge className="absolute top-3 left-3 bg-white/90 text-[#2B2B2B] border border-[#E5E0DA] font-mono font-bold text-[10px] uppercase shadow-xs">
+                        {p.codigo}
+                      </Badge>
+                    )}
                     <Badge className="absolute top-3 right-3 bg-[#2B2B2B]/85 text-white font-semibold text-[10px] uppercase backdrop-blur-xs">
                       {nomeCategoria}
                     </Badge>
@@ -385,13 +410,22 @@ export default function AdminProdutos() {
                   {/* Informações */}
                   <div className="p-4 space-y-2">
                     <div>
-                      {nomeLinha && (
-                        <span className="inline-block text-[11px] font-semibold text-[#A67C52] tracking-wide mb-0.5">
-                          Linha {nomeLinha}
-                        </span>
-                      )}
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        {nomeLinha ? (
+                          <span className="inline-block text-[11px] font-semibold text-[#A67C52] tracking-wide">
+                            Linha {nomeLinha}
+                          </span>
+                        ) : (
+                          <span />
+                        )}
+                        {p.codigo && (
+                          <span className="text-[10px] font-mono font-semibold text-[#8C8C8C] bg-[#FAF7F3] px-1.5 py-0.5 rounded border border-[#E5E0DA]">
+                            {p.codigo}
+                          </span>
+                        )}
+                      </div>
                       <h3 className="font-bold text-base text-[#2B2B2B] line-clamp-1">{p.nome}</h3>
-                    </div>
+                    </div>{' '}
                     {p.dimensoes && (
                       <p className="text-xs text-[#6B6B6B]">Dimensões: {p.dimensoes}</p>
                     )}
@@ -460,6 +494,23 @@ export default function AdminProdutos() {
 
           <form onSubmit={handleSave} className="space-y-4 pt-2">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="prodCodigo" className="text-xs font-semibold text-[#2B2B2B]">
+                  Código <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="prodCodigo"
+                  value={codigo}
+                  onChange={(e) => {
+                    setCodigo(e.target.value)
+                    if (formErrors.codigo) setFormErrors((p) => ({ ...p, codigo: '' }))
+                  }}
+                  placeholder="Ex: TDL-MAU-001"
+                  className="bg-[#FBF9F6] border-[#E5E0DA] font-mono text-xs uppercase"
+                />
+                {formErrors.codigo && <p className="text-xs text-red-600">{formErrors.codigo}</p>}
+              </div>
+
               <div className="sm:col-span-2 space-y-1.5">
                 <Label htmlFor="prodNome" className="text-xs font-semibold text-[#2B2B2B]">
                   Nome do Produto <span className="text-red-500">*</span>
@@ -476,7 +527,9 @@ export default function AdminProdutos() {
                 />
                 {formErrors.nome && <p className="text-xs text-red-600">{formErrors.nome}</p>}
               </div>
+            </div>
 
+            <div className="grid grid-cols-2 gap-3">
               {/* Dropdown de Linha alimentado pela coleção 'linhas' (com opção vazia) */}
               <div className="space-y-1.5">
                 <Label htmlFor="prodLinha" className="text-xs font-semibold text-[#2B2B2B]">
@@ -496,9 +549,7 @@ export default function AdminProdutos() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3">
               {/* Dropdown de Categoria alimentado pela coleção 'categorias' (obrigatório) */}
               <div className="space-y-1.5">
                 <Label htmlFor="prodTipo" className="text-xs font-semibold text-[#2B2B2B]">

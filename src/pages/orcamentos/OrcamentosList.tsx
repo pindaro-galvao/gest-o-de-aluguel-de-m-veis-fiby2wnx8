@@ -480,6 +480,7 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                           <SelectContent>
                             {produtos.map((p) => (
                               <SelectItem key={p.id} value={p.id}>
+                                {p.codigo ? `${p.codigo} — ` : ''}
                                 {p.nome}
                                 {p.expand?.linha?.nome
                                   ? ` (Linha ${p.expand.linha.nome})`
@@ -633,18 +634,25 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                       className="flex items-center justify-between p-2.5 text-xs bg-white"
                     >
                       <div>
-                        <div className="font-semibold text-[#2B2B2B]">
-                          {item.expand?.produto?.nome || 'Móvel TIDELLI'}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {item.expand?.produto?.codigo && (
+                            <span className="font-mono text-xs font-bold text-[#A67C52] bg-[#FAF7F3] px-1.5 py-0.5 rounded border border-[#E5E0DA]">
+                              {item.expand.produto.codigo}
+                            </span>
+                          )}
+                          <span className="font-semibold text-[#2B2B2B]">
+                            {item.expand?.produto?.nome || 'Móvel TIDELLI'}
+                          </span>
                         </div>
                         {(item.expand?.produto?.expand?.linha?.nome ||
                           item.expand?.produto?.linha) && (
-                          <div className="text-[11px] text-[#A67C52] font-semibold">
+                          <div className="text-[11px] text-[#A67C52] font-semibold mt-0.5">
                             Linha{' '}
                             {item.expand?.produto?.expand?.linha?.nome ||
                               item.expand?.produto?.linha}
                           </div>
-                        )}{' '}
-                        <div className="text-[11px] text-[#6B6B6B]">
+                        )}
+                        <div className="text-[11px] text-[#6B6B6B] mt-0.5">
                           Qtd: {item.quantidade} •{' '}
                           {formatCurrency(item.expand?.produto?.valor_locacao_mensal || 0)}/mês cada
                         </div>

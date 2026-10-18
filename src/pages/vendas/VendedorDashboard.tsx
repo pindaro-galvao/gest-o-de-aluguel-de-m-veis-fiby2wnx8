@@ -194,7 +194,12 @@ export default function VendedorDashboard() {
                       {v.expand?.cliente?.nome || 'Cliente'}
                     </div>
                     <div className="text-[11px] text-[#6B6B6B]">
-                      {v.expand?.produto?.nome}
+                      {v.expand?.produto?.codigo && (
+                        <span className="font-mono font-bold text-[#A67C52] mr-1">
+                          [{v.expand.produto.codigo}]
+                        </span>
+                      )}
+                      <span>{v.expand?.produto?.nome}</span>
                       {(v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha) && (
                         <span className="text-[#A67C52] font-medium ml-1">
                           · Linha{' '}

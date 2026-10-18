@@ -177,6 +177,11 @@ export default function ClienteRelatorio() {
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
+                    {v.expand?.produto?.codigo && (
+                      <span className="font-mono text-xs font-bold text-[#A67C52] bg-white px-2 py-0.5 rounded border border-[#E5E0DA] shadow-2xs">
+                        {v.expand.produto.codigo}
+                      </span>
+                    )}
                     <h4 className="font-bold text-base text-[#2B2B2B]">
                       {v.expand?.produto?.nome || 'Móvel TIDELLI'}
                       {(v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha) && (
