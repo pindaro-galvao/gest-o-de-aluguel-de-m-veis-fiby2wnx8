@@ -175,7 +175,11 @@ export default function Layout() {
                   >
                     <div className="flex items-center gap-2">
                       <Settings className="h-3.5 w-3.5 text-[#A67C52]" />
-                      <span>CONFIGURAÇÃO</span>
+                      <span>
+                        Configuração
+                        <br />
+                        <br />
+                      </span>
                     </div>
                     {configMenuOpen ? (
                       <ChevronDown className="h-3.5 w-3.5" />
