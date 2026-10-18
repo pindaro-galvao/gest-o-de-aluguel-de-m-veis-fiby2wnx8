@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Users,
   Armchair,
+  Layers,
   FileText,
   BadgeDollarSign,
   Receipt,
@@ -159,6 +160,34 @@ export default function Layout() {
                 >
                   <Armchair className="h-4 w-4" />
                   Produtos TIDELLI
+                </NavLink>
+                <NavLink
+                  to="/admin/categorias"
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[#A67C52] text-white'
+                        : 'text-[#D0D0D0] hover:bg-[#383838] hover:text-white'
+                    }`
+                  }
+                >
+                  <Layers className="h-4 w-4" />
+                  Categorias
+                </NavLink>
+                <NavLink
+                  to="/admin/linhas"
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[#A67C52] text-white'
+                        : 'text-[#D0D0D0] hover:bg-[#383838] hover:text-white'
+                    }`
+                  }
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Linhas
                 </NavLink>
                 <NavLink
                   to="/admin/relatorios"
@@ -348,6 +377,8 @@ export default function Layout() {
     if (path === '/admin') return 'Painel Geral da Administração'
     if (path === '/admin/usuarios') return 'Gestão de Usuários'
     if (path === '/admin/produtos') return 'Catálogo de Produtos TIDELLI'
+    if (path === '/admin/categorias') return 'Gestão de Categorias'
+    if (path === '/admin/linhas') return 'Gestão de Linhas TIDELLI'
     if (path === '/admin/relatorios') return 'Relatórios Gerais Consolidados'
     if (path === '/admin/vendas' || path === '/vendas') return 'Gestão de Vendas & Locações'
     if (path === '/admin/orcamentos' || path === '/orcamentos') return 'Orçamentos & Cotações'

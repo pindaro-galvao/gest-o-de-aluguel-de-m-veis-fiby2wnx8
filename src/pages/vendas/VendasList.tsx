@@ -228,7 +228,8 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
     const term = searchTerm.toLowerCase()
     const clienteNome = v.expand?.cliente?.nome?.toLowerCase() || ''
     const produtoNome = v.expand?.produto?.nome?.toLowerCase() || ''
-    const produtoLinha = v.expand?.produto?.linha?.toLowerCase() || ''
+    const produtoLinha =
+      (v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha)?.toLowerCase() || ''
     const vendedorNome = v.expand?.vendedor?.name?.toLowerCase() || ''
 
     return (
@@ -352,11 +353,11 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                   </td>
                   <td className="px-4 py-3.5 font-medium">
                     <div>{v.expand?.produto?.nome || 'Móvel'}</div>
-                    {v.expand?.produto?.linha && (
-                      <span className="text-[11px] font-normal text-[#A67C52]">
-                        Linha {v.expand.produto.linha}
-                      </span>
-                    )}
+                    {(v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha) && (
+                      <div className="text-[11px] text-[#A67C52] font-semibold">
+                        Linha {v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha}
+                      </div>
+                    )}{' '}
                   </td>
                   <td className="px-4 py-3.5">{v.quantidade} un.</td>
                   <td className="px-4 py-3.5 text-xs text-[#6B6B6B]">
@@ -463,8 +464,12 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                     {produtos.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.nome}
-                        {p.linha ? ` (Linha ${p.linha})` : ''} —{' '}
-                        {formatCurrency(p.valor_locacao_mensal)}/mês
+                        {p.expand?.linha?.nome
+                          ? ` (Linha ${p.expand.linha.nome})`
+                          : p.linha
+                            ? ` (Linha ${p.linha})`
+                            : ''}{' '}
+                        — {formatCurrency(p.valor_locacao_mensal)}/mês
                       </SelectItem>
                     ))}
                   </SelectContent>

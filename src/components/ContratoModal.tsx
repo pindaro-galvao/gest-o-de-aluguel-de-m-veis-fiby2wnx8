@@ -181,9 +181,11 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
                     )}
                   </td>
                   <td className="px-3 py-3 font-medium text-[#A67C52]">
-                    {venda.expand?.produto?.linha
-                      ? `Linha ${venda.expand.produto.linha}`
-                      : 'Padrão TIDELLI'}
+                    {venda.expand?.produto?.expand?.linha?.nome
+                      ? `Linha ${venda.expand.produto.expand.linha.nome}`
+                      : venda.expand?.produto?.linha
+                        ? `Linha ${venda.expand.produto.linha}`
+                        : 'Padrão TIDELLI'}
                   </td>
                   <td className="px-3 py-3 text-center font-semibold">{venda.quantidade} un.</td>
                   <td className="px-3 py-3 text-right">{formatCurrency(valorMensalUnitario)}</td>

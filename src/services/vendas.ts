@@ -6,13 +6,13 @@ export const vendasService = {
     return pb.collection('vendas').getFullList<VendaRecord>({
       sort: params?.sort || '-created',
       filter: params?.filter || '',
-      expand: 'cliente,produto,vendedor',
+      expand: 'cliente,produto,produto.tipo,produto.linha,vendedor',
     })
   },
 
   async getById(id: string) {
     return pb.collection('vendas').getOne<VendaRecord>(id, {
-      expand: 'cliente,produto,vendedor',
+      expand: 'cliente,produto,produto.tipo,produto.linha,vendedor',
     })
   },
 
@@ -29,13 +29,13 @@ export const vendasService = {
   }) {
     // Vendedor é gravado automaticamente pelo backend hook, mas podemos passar seguro
     return pb.collection('vendas').create<VendaRecord>(data, {
-      expand: 'cliente,produto,vendedor',
+      expand: 'cliente,produto,produto.tipo,produto.linha,vendedor',
     })
   },
 
   async update(id: string, data: Partial<VendaRecord>) {
     return pb.collection('vendas').update<VendaRecord>(id, data, {
-      expand: 'cliente,produto,vendedor',
+      expand: 'cliente,produto,produto.tipo,produto.linha,vendedor',
     })
   },
 

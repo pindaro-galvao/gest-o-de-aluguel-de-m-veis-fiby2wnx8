@@ -425,9 +425,11 @@ export default function ClientesList() {
                         <div>
                           <div className="font-semibold text-[#2B2B2B]">
                             {v.expand?.produto?.nome || 'Móvel TIDELLI'}
-                            {v.expand?.produto?.linha && (
+                            {(v.expand?.produto?.expand?.linha?.nome ||
+                              v.expand?.produto?.linha) && (
                               <span className="font-normal text-[#A67C52] ml-1">
-                                · Linha {v.expand.produto.linha}
+                                · Linha{' '}
+                                {v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha}
                               </span>
                             )}{' '}
                             ({v.quantidade} un.)

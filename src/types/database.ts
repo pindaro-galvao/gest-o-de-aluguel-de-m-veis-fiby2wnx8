@@ -10,25 +10,36 @@ export interface UserRecord extends RecordModel {
   verified: boolean
 }
 
-export type TipoProduto =
-  | 'sofá'
-  | 'mesa'
-  | 'cadeira'
-  | 'cama'
-  | 'armário'
-  | 'estante'
-  | 'poltrona'
-  | 'aparador'
+export interface CategoriaRecord extends RecordModel {
+  nome: string
+  descricao?: string
+  ordem?: number
+  ativo: boolean
+}
+
+export interface LinhaRecord extends RecordModel {
+  nome: string
+  descricao?: string
+  ordem?: number
+  ativo: boolean
+}
+
+// Mantido como type para compatibilidade onde string for exibida
+export type TipoProduto = string
 
 export interface ProdutoRecord extends RecordModel {
   nome: string
-  linha?: string
-  tipo: TipoProduto
+  linha?: string // relation -> linhas
+  tipo: string // relation -> categorias
   dimensoes?: string
   descricao?: string
   quantidade_estoque: number
   valor_locacao_mensal: number
   foto?: string
+  expand?: {
+    tipo?: CategoriaRecord
+    linha?: LinhaRecord
+  }
 }
 
 export interface ClienteRecord extends RecordModel {

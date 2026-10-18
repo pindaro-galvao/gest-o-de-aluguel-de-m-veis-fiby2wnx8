@@ -195,9 +195,10 @@ export default function VendedorDashboard() {
                     </div>
                     <div className="text-[11px] text-[#6B6B6B]">
                       {v.expand?.produto?.nome}
-                      {v.expand?.produto?.linha && (
+                      {(v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha) && (
                         <span className="text-[#A67C52] font-medium ml-1">
-                          · Linha {v.expand.produto.linha}
+                          · Linha{' '}
+                          {v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha}
                         </span>
                       )}{' '}
                       ({v.quantidade} un.)

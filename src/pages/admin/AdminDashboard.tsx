@@ -68,11 +68,12 @@ export default function AdminDashboard() {
     return produtos.reduce((acc, curr) => acc + (curr.quantidade_estoque || 0), 0)
   }, [produtos])
 
-  // Agrupamento por tipo de produto para o gráfico
+  // Agrupamento por categoria (tipo) de produto para o gráfico
   const distribuicaoProdutos = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const p of produtos) {
-      counts[p.tipo] = (counts[p.tipo] || 0) + 1
+      const nomeCategoria = p.expand?.tipo?.nome || 'Outros'
+      counts[nomeCategoria] = (counts[nomeCategoria] || 0) + 1
     }
     return Object.entries(counts).map(([tipo, count]) => ({
       tipo: tipo.toUpperCase(),
@@ -337,9 +338,9 @@ export default function AdminDashboard() {
                       <div className="font-semibold text-xs">
                         {v.expand?.produto?.nome || 'Produto'}
                       </div>
-                      {v.expand?.produto?.linha && (
+                      {(v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha) && (
                         <div className="text-[11px] text-[#A67C52] font-medium">
-                          Linha {v.expand.produto.linha}
+                          Linha {v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha}
                         </div>
                       )}
                       <div className="text-[11px] text-[#6B6B6B]">{v.quantidade} unidade(s)</div>

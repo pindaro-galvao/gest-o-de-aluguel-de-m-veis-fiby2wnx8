@@ -4,12 +4,14 @@ import { vendasService } from '@/services/vendas'
 import { orcamentosService } from '@/services/orcamentos'
 import { produtosService } from '@/services/produtos'
 import { clientesService } from '@/services/clientes'
+import { linhasService } from '@/services/linhas'
 import type {
   VendaRecord,
   OrcamentoRecord,
   OrcamentoItemRecord,
-  ProdutoRecord,
   ClienteRecord,
+  ProdutoRecord,
+  LinhaRecord,
 } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -38,29 +40,32 @@ export default function AdminRelatorios() {
   const [orcamentoItens, setOrcamentoItens] = useState<OrcamentoItemRecord[]>([])
   const [clientes, setClientes] = useState<ClienteRecord[]>([])
   const [produtos, setProdutos] = useState<ProdutoRecord[]>([])
+  const [linhas, setLinhas] = useState<LinhaRecord[]>([])
   const [loading, setLoading] = useState(true)
 
   const [periodoFilter, setPeriodoFilter] = useState('TODOS') // 'TODOS' | '30' | '90' | '180' | '365'
-  const [linhaFilter, setLinhaFilter] = useState('TODAS') // 'TODAS' | nome da linha
+  const [linhaFilter, setLinhaFilter] = useState('TODAS') // 'TODAS' | linha.id ou nome
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [v, o, c, p] = await Promise.all([
+        const [v, o, c, p, l] = await Promise.all([
           vendasService.getAll(),
           orcamentosService.getAll(),
           clientesService.getAll(),
           produtosService.getAll(),
+          linhasService.getAll(),
         ])
         setVendas(v)
         setOrcamentos(o)
         setClientes(c)
         setProdutos(p)
+        setLinhas(l)
 
         // Carregar itens de orçamentos para cruzar com a linha dos produtos
         try {
           const itens = await pb.collection('orcamento_itens').getFullList<OrcamentoItemRecord>({
-            expand: 'produto',
+            expand: 'produto,produto.linha',
           })
           setOrcamentoItens(itens)
         } catch (itensErr) {
@@ -75,27 +80,19 @@ export default function AdminRelatorios() {
     load()
   }, [])
 
-  // Lista de Linhas distintas cadastradas em produtos
-  const linhasDisponiveis = useMemo(() => {
-    const setLinhas = new Set<string>()
-    produtos.forEach((p) => {
-      if (p.linha && p.linha.trim()) {
-        setLinhas.add(p.linha.trim())
-      }
-    })
-    return Array.from(setLinhas).sort()
-  }, [produtos])
-
   // Mapeamento de quais orçamentos possuem itens de cada linha
   const orcamentosLinhasMap = useMemo(() => {
-    const map = new Map<string, Set<string>>() // orcamentoId -> Set of linha names
+    const map = new Map<string, Set<string>>() // orcamentoId -> Set of linha ids or names
     orcamentoItens.forEach((item) => {
-      const linha = item.expand?.produto?.linha?.trim()
-      if (linha && item.orcamento) {
+      const prod = item.expand?.produto
+      const linhaId = prod?.linha
+      const linhaNome = prod?.expand?.linha?.nome
+      if (item.orcamento) {
         if (!map.has(item.orcamento)) {
           map.set(item.orcamento, new Set())
         }
-        map.get(item.orcamento)!.add(linha)
+        if (linhaId) map.get(item.orcamento)!.add(linhaId)
+        if (linhaNome) map.get(item.orcamento)!.add(linhaNome)
       }
     })
     return map
@@ -106,8 +103,10 @@ export default function AdminRelatorios() {
     return vendas.filter((v) => {
       // Filtro de Linha
       if (linhaFilter !== 'TODAS') {
-        const prodLinha = v.expand?.produto?.linha?.trim()
-        if (!prodLinha || prodLinha !== linhaFilter) {
+        const prod = v.expand?.produto
+        const prodLinhaId = prod?.linha
+        const prodLinhaNome = prod?.expand?.linha?.nome
+        if (prodLinhaId !== linhaFilter && prodLinhaNome !== linhaFilter) {
           return false
         }
       }
@@ -202,9 +201,9 @@ export default function AdminRelatorios() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="TODAS">Todas as linhas</SelectItem>
-                {linhasDisponiveis.map((linha) => (
-                  <SelectItem key={linha} value={linha}>
-                    Linha {linha}
+                {linhas.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>
+                    Linha {l.nome}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -247,7 +246,9 @@ export default function AdminRelatorios() {
           </div>
           <span className="text-xs text-[#6B6B6B] mt-1 block">
             {filteredVendas.length} contrato(s){' '}
-            {linhaFilter !== 'TODAS' ? `(Linha ${linhaFilter})` : 'no período'}
+            {linhaFilter !== 'TODAS'
+              ? `(Linha ${linhas.find((l) => l.id === linhaFilter)?.nome || linhaFilter})`
+              : 'no período'}
           </span>
         </div>
 
@@ -268,7 +269,9 @@ export default function AdminRelatorios() {
           </div>
           <span className="text-xs text-[#6B6B6B] mt-1 block">
             {filteredOrcamentos.length} cotação(ões){' '}
-            {linhaFilter !== 'TODAS' ? `(Linha ${linhaFilter})` : 'emitidas'}
+            {linhaFilter !== 'TODAS'
+              ? `(Linha ${linhas.find((l) => l.id === linhaFilter)?.nome || linhaFilter})`
+              : 'emitidas'}
           </span>
         </div>
 
@@ -315,9 +318,9 @@ export default function AdminRelatorios() {
                     <td className="px-3 py-2.5 font-medium">{v.expand?.cliente?.nome || '-'}</td>
                     <td className="px-3 py-2.5">
                       <div>{v.expand?.produto?.nome || '-'}</div>
-                      {v.expand?.produto?.linha && (
+                      {(v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha) && (
                         <span className="text-[11px] text-[#A67C52] font-medium">
-                          Linha {v.expand.produto.linha}
+                          Linha {v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha}
                         </span>
                       )}
                     </td>

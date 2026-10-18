@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { produtosService } from '@/services/produtos'
-import type { ProdutoRecord, TipoProduto } from '@/types/database'
+import { categoriasService } from '@/services/categorias'
+import { linhasService } from '@/services/linhas'
+import type { ProdutoRecord, CategoriaRecord, LinhaRecord } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,33 +25,17 @@ import {
 } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
-import {
-  Armchair,
-  Plus,
-  Search,
-  Edit3,
-  Trash2,
-  Image as ImageIcon,
-  CheckCircle,
-  Package,
-} from 'lucide-react'
-
-const TIPOS_PRODUTO: TipoProduto[] = [
-  'sofá',
-  'mesa',
-  'cadeira',
-  'cama',
-  'armário',
-  'estante',
-  'poltrona',
-  'aparador',
-]
+import { Armchair, Plus, Search, Edit3, Trash2, Package } from 'lucide-react'
 
 export default function AdminProdutos() {
   const [produtos, setProdutos] = useState<ProdutoRecord[]>([])
+  const [categorias, setCategorias] = useState<CategoriaRecord[]>([])
+  const [linhas, setLinhas] = useState<LinhaRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [tipoFilter, setTipoFilter] = useState('TODOS')
-  const [linhaFilter, setLinhaFilter] = useState('TODAS')
+
+  // Filtros
+  const [tipoFilter, setTipoFilter] = useState('TODOS') // 'TODOS' ou categoria.id
+  const [linhaFilter, setLinhaFilter] = useState('TODAS') // 'TODAS' ou linha.id
   const [searchTerm, setSearchTerm] = useState('')
 
   // Modal State
@@ -58,8 +44,8 @@ export default function AdminProdutos() {
 
   // Form Fields
   const [nome, setNome] = useState('')
-  const [linha, setLinha] = useState('')
-  const [tipo, setTipo] = useState<TipoProduto>('sofá')
+  const [linhaId, setLinhaId] = useState('')
+  const [tipoId, setTipoId] = useState('')
   const [dimensoes, setDimensoes] = useState('')
   const [descricao, setDescricao] = useState('')
   const [quantidadeEstoque, setQuantidadeEstoque] = useState<number>(1)
@@ -68,11 +54,17 @@ export default function AdminProdutos() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [isSaving, setIsSaving] = useState(false)
 
-  const loadProdutos = async () => {
+  const loadData = async () => {
     try {
       setLoading(true)
-      const list = await produtosService.getAll()
-      setProdutos(list)
+      const [pList, cList, lList] = await Promise.all([
+        produtosService.getAll(),
+        categoriasService.getAll(),
+        linhasService.getAll(),
+      ])
+      setProdutos(pList)
+      setCategorias(cList)
+      setLinhas(lList)
     } catch (err) {
       console.error(err)
       toast({
@@ -86,19 +78,49 @@ export default function AdminProdutos() {
   }
 
   useEffect(() => {
-    loadProdutos()
+    loadData()
   }, [])
 
   // Realtime
   useRealtime<ProdutoRecord>('produtos', () => {
-    produtosService.getAll().then(setProdutos).catch(console.error)
+    loadData()
   })
+  useRealtime<CategoriaRecord>('categorias', () => {
+    loadData()
+  })
+  useRealtime<LinhaRecord>('linhas', () => {
+    loadData()
+  })
+
+  // Lista de categorias para o formulário:
+  // Se for criação: apenas ativas
+  // Se for edição: ativas + categoria atual do produto (mesmo se inativa)
+  const formCategorias = useMemo(() => {
+    return categorias.filter((c) => {
+      if (c.ativo) return true
+      if (editingProduto && editingProduto.tipo === c.id) return true
+      return false
+    })
+  }, [categorias, editingProduto])
+
+  // Lista de linhas para o formulário:
+  // Se for criação: apenas ativas
+  // Se for edição: ativas + linha atual do produto (mesmo se inativa)
+  const formLinhas = useMemo(() => {
+    return linhas.filter((l) => {
+      if (l.ativo) return true
+      if (editingProduto && editingProduto.linha === l.id) return true
+      return false
+    })
+  }, [linhas, editingProduto])
 
   const openCreateModal = () => {
     setEditingProduto(null)
     setNome('')
-    setLinha('')
-    setTipo('sofá')
+    setLinhaId('NONE')
+    // Categoria padrão: a primeira ativa ou vazia
+    const firstCat = categorias.find((c) => c.ativo)
+    setTipoId(firstCat?.id || '')
     setDimensoes('')
     setDescricao('')
     setQuantidadeEstoque(1)
@@ -111,8 +133,8 @@ export default function AdminProdutos() {
   const openEditModal = (p: ProdutoRecord) => {
     setEditingProduto(p)
     setNome(p.nome)
-    setLinha(p.linha || '')
-    setTipo(p.tipo)
+    setLinhaId(p.linha || 'NONE')
+    setTipoId(p.tipo || '')
     setDimensoes(p.dimensoes || '')
     setDescricao(p.descricao || '')
     setQuantidadeEstoque(p.quantidade_estoque || 0)
@@ -125,6 +147,7 @@ export default function AdminProdutos() {
   const validate = () => {
     const errs: Record<string, string> = {}
     if (!nome.trim()) errs.nome = 'O nome do produto é obrigatório.'
+    if (!tipoId || tipoId === 'NONE') errs.tipoId = 'A categoria é obrigatória.'
     if (quantidadeEstoque < 0) errs.quantidadeEstoque = 'Quantidade não pode ser negativa.'
     if (valorLocacaoMensal <= 0)
       errs.valorLocacaoMensal = 'O valor mensal deve ser superior a zero.'
@@ -140,8 +163,8 @@ export default function AdminProdutos() {
     try {
       const formData = new FormData()
       formData.append('nome', nome.trim())
-      formData.append('linha', linha.trim())
-      formData.append('tipo', tipo)
+      formData.append('tipo', tipoId)
+      formData.append('linha', linhaId === 'NONE' ? '' : linhaId)
       formData.append('dimensoes', dimensoes.trim())
       formData.append('descricao', descricao.trim())
       formData.append('quantidade_estoque', String(quantidadeEstoque))
@@ -165,7 +188,7 @@ export default function AdminProdutos() {
       }
 
       setIsModalOpen(false)
-      loadProdutos()
+      loadData()
     } catch (err: unknown) {
       console.error(err)
       toast({
@@ -186,7 +209,7 @@ export default function AdminProdutos() {
         title: 'Produto excluído',
         description: 'O móvel foi removido do catálogo com sucesso.',
       })
-      loadProdutos()
+      loadData()
     } catch (err: unknown) {
       console.error(err)
       toast({
@@ -197,21 +220,41 @@ export default function AdminProdutos() {
     }
   }
 
-  // Lista de linhas distintas existentes nos produtos cadastrados (ignorando vazias)
-  const availableLinhas = Array.from(
-    new Set(produtos.map((p) => (p.linha ? p.linha.trim() : '')).filter((l) => Boolean(l))),
-  ).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  // Contagem de produtos por categoria e por linha para os filtros
+  const contagemPorCategoria = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const p of produtos) {
+      if (p.tipo) {
+        map[p.tipo] = (map[p.tipo] || 0) + 1
+      }
+    }
+    return map
+  }, [produtos])
+
+  const contagemPorLinha = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const p of produtos) {
+      if (p.linha) {
+        map[p.linha] = (map[p.linha] || 0) + 1
+      }
+    }
+    return map
+  }, [produtos])
 
   const filteredProdutos = produtos.filter((p) => {
     const matchTipo = tipoFilter === 'TODOS' || p.tipo === tipoFilter
-    const matchLinha =
-      linhaFilter === 'TODAS' ||
-      (p.linha && p.linha.trim().toLowerCase() === linhaFilter.toLowerCase())
+    const matchLinha = linhaFilter === 'TODAS' || p.linha === linhaFilter
+
     const term = searchTerm.toLowerCase()
+    const nomeCategoria = p.expand?.tipo?.nome?.toLowerCase() || ''
+    const nomeLinha = p.expand?.linha?.nome?.toLowerCase() || ''
+
     const matchSearch =
       p.nome.toLowerCase().includes(term) ||
-      (p.linha && p.linha.toLowerCase().includes(term)) ||
+      nomeLinha.includes(term) ||
+      nomeCategoria.includes(term) ||
       (p.descricao && p.descricao.toLowerCase().includes(term))
+
     return matchTipo && matchLinha && matchSearch
   })
 
@@ -248,46 +291,52 @@ export default function AdminProdutos() {
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C8C8C]" />
           <Input
-            placeholder="Buscar por nome, linha ou descrição..."
+            placeholder="Buscar por nome, linha, categoria..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 bg-white border-[#E5E0DA]"
           />
         </div>
 
-        <div className="w-full sm:w-48">
+        {/* Filtro por Categoria com Contagem */}
+        <div className="w-full sm:w-56">
           <Select value={tipoFilter} onValueChange={setTipoFilter}>
             <SelectTrigger className="bg-white border-[#E5E0DA]">
               <SelectValue placeholder="Filtrar por Categoria" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="TODOS">Todas as Categorias</SelectItem>
-              {TIPOS_PRODUTO.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t.toUpperCase()}
-                </SelectItem>
-              ))}
+              <SelectItem value="TODOS">Todas as Categorias ({produtos.length})</SelectItem>
+              {categorias.map((cat) => {
+                const count = contagemPorCategoria[cat.id] || 0
+                return (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.nome.toUpperCase()} ({count})
+                  </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
         </div>
 
-        {availableLinhas.length > 0 && (
-          <div className="w-full sm:w-48">
-            <Select value={linhaFilter} onValueChange={setLinhaFilter}>
-              <SelectTrigger className="bg-white border-[#E5E0DA]">
-                <SelectValue placeholder="Filtrar por Linha" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="TODAS">Todas as Linhas</SelectItem>
-                {availableLinhas.map((lin) => (
-                  <SelectItem key={lin} value={lin}>
-                    Linha {lin}
+        {/* Filtro por Linha com Contagem */}
+        <div className="w-full sm:w-56">
+          <Select value={linhaFilter} onValueChange={setLinhaFilter}>
+            <SelectTrigger className="bg-white border-[#E5E0DA]">
+              <SelectValue placeholder="Filtrar por Linha" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="TODAS">Todas as Linhas</SelectItem>
+              {linhas.map((lin) => {
+                const count = contagemPorLinha[lin.id] || 0
+                return (
+                  <SelectItem key={lin.id} value={lin.id}>
+                    Linha {lin.nome} ({count})
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+                )
+              })}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Grid de Produtos em Cards */}
@@ -303,6 +352,9 @@ export default function AdminProdutos() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProdutos.map((p) => {
             const imageUrl = produtosService.getImageUrl(p)
+            const nomeCategoria = p.expand?.tipo?.nome || 'Móvel'
+            const nomeLinha = p.expand?.linha?.nome
+
             return (
               <div
                 key={p.id}
@@ -326,16 +378,16 @@ export default function AdminProdutos() {
                       </div>
                     )}
                     <Badge className="absolute top-3 right-3 bg-[#2B2B2B]/85 text-white font-semibold text-[10px] uppercase backdrop-blur-xs">
-                      {p.tipo}
+                      {nomeCategoria}
                     </Badge>
                   </div>
 
                   {/* Informações */}
                   <div className="p-4 space-y-2">
                     <div>
-                      {p.linha && p.linha.trim() && (
+                      {nomeLinha && (
                         <span className="inline-block text-[11px] font-semibold text-[#A67C52] tracking-wide mb-0.5">
-                          Linha {p.linha}
+                          Linha {nomeLinha}
                         </span>
                       )}
                       <h3 className="font-bold text-base text-[#2B2B2B] line-clamp-1">{p.nome}</h3>
@@ -382,6 +434,7 @@ export default function AdminProdutos() {
                       size="sm"
                       onClick={() => handleDelete(p.id, p.nome)}
                       className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                      title="Excluir móvel"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -424,37 +477,52 @@ export default function AdminProdutos() {
                 {formErrors.nome && <p className="text-xs text-red-600">{formErrors.nome}</p>}
               </div>
 
+              {/* Dropdown de Linha alimentado pela coleção 'linhas' (com opção vazia) */}
               <div className="space-y-1.5">
                 <Label htmlFor="prodLinha" className="text-xs font-semibold text-[#2B2B2B]">
                   Linha <span className="text-[11px] font-normal text-[#8C8C8C]">(opcional)</span>
                 </Label>
-                <Input
-                  id="prodLinha"
-                  value={linha}
-                  onChange={(e) => setLinha(e.target.value)}
-                  placeholder="Ex: Linha Maui"
-                  className="bg-[#FBF9F6] border-[#E5E0DA]"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="prodTipo" className="text-xs font-semibold text-[#2B2B2B]">
-                  Categoria
-                </Label>
-                <Select value={tipo} onValueChange={(val) => setTipo(val as TipoProduto)}>
+                <Select value={linhaId} onValueChange={setLinhaId}>
                   <SelectTrigger className="bg-[#FBF9F6] border-[#E5E0DA]">
-                    <SelectValue />
+                    <SelectValue placeholder="Nenhuma" />
                   </SelectTrigger>
                   <SelectContent>
-                    {TIPOS_PRODUTO.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t.toUpperCase()}
+                    <SelectItem value="NONE">Sem linha específica</SelectItem>
+                    {formLinhas.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        Linha {l.nome} {!l.ativo ? '(inativa)' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Dropdown de Categoria alimentado pela coleção 'categorias' (obrigatório) */}
+              <div className="space-y-1.5">
+                <Label htmlFor="prodTipo" className="text-xs font-semibold text-[#2B2B2B]">
+                  Categoria <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={tipoId}
+                  onValueChange={(val) => {
+                    setTipoId(val)
+                    if (formErrors.tipoId) setFormErrors((p) => ({ ...p, tipoId: '' }))
+                  }}
+                >
+                  <SelectTrigger className="bg-[#FBF9F6] border-[#E5E0DA]">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formCategorias.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome.toUpperCase()} {!c.ativo ? '(inativa)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formErrors.tipoId && <p className="text-xs text-red-600">{formErrors.tipoId}</p>}
               </div>
 
               <div className="space-y-1.5">

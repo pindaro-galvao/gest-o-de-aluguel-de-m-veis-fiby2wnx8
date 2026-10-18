@@ -19,6 +19,8 @@ import ConfirmEmailChange from './pages/ConfirmEmailChange'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsuarios from './pages/admin/AdminUsuarios'
 import AdminProdutos from './pages/admin/AdminProdutos'
+import AdminCategorias from './pages/admin/AdminCategorias'
+import AdminLinhas from './pages/admin/AdminLinhas'
 import AdminRelatorios from './pages/admin/AdminRelatorios'
 
 // Vendas & Orçamentos Pages
@@ -52,6 +54,8 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/usuarios" element={<AdminUsuarios />} />
             <Route path="/admin/produtos" element={<AdminProdutos />} />
+            <Route path="/admin/categorias" element={<AdminCategorias />} />
+            <Route path="/admin/linhas" element={<AdminLinhas />} />
             <Route path="/admin/relatorios" element={<AdminRelatorios />} />
             <Route path="/admin/vendas" element={<VendasList isAdminView={true} />} />
             <Route path="/admin/orcamentos" element={<OrcamentosList isAdminView={true} />} />

@@ -179,11 +179,12 @@ export default function ClienteRelatorio() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-bold text-base text-[#2B2B2B]">
                       {v.expand?.produto?.nome || 'Móvel TIDELLI'}
-                      {v.expand?.produto?.linha && (
-                        <span className="font-normal text-xs text-[#A67C52] ml-1.5">
-                          · Linha {v.expand.produto.linha}
+                      {(v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha) && (
+                        <span className="font-semibold text-[#A67C52] ml-1">
+                          · Linha{' '}
+                          {v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha}
                         </span>
-                      )}
+                      )}{' '}
                     </h4>
                     <Badge
                       variant="outline"
@@ -198,7 +199,9 @@ export default function ClienteRelatorio() {
                   </div>
                   <p className="text-xs text-[#6B6B6B]">
                     Quantidade: <strong>{v.quantidade} unidade(s)</strong> • Categoria:{' '}
-                    <strong className="capitalize">{v.expand?.produto?.tipo || 'Móvel'}</strong>
+                    <strong className="capitalize">
+                      {v.expand?.produto?.expand?.tipo?.nome || v.expand?.produto?.tipo || 'Móvel'}
+                    </strong>
                   </p>
                   {v.expand?.produto?.dimensoes && (
                     <p className="text-xs text-[#6B6B6B]">

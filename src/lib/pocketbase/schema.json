@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T16:52:24.270Z",
+  "generatedAt": "2026-10-18T17:03:01.565Z",
   "collections": [
     {
       "name": "users",
@@ -69,22 +69,6 @@
           "system": false
         },
         {
-          "name": "tipo",
-          "type": "select",
-          "required": true,
-          "system": false,
-          "selectValues": [
-            "sofá",
-            "mesa",
-            "cadeira",
-            "cama",
-            "armário",
-            "estante",
-            "poltrona",
-            "aparador"
-          ]
-        },
-        {
           "name": "dimensoes",
           "type": "text",
           "required": false,
@@ -129,15 +113,35 @@
           "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
-          "name": "linha",
+          "name": "tipo_old",
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "linha_old",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "categorias"
+        },
+        {
+          "name": "linha",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "linhas"
         }
       ],
       "indexes": [
-        "CREATE INDEX idx_produtos_tipo ON produtos (tipo)",
         "CREATE INDEX idx_produtos_nome ON produtos (nome)",
+        "CREATE INDEX `idx_produtos_tipo` ON `produtos` (tipo)",
         "CREATE INDEX `idx_produtos_linha` ON `produtos` (linha)"
       ]
     },
@@ -426,6 +430,116 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_orcamento_itens_orcamento ON orcamento_itens (orcamento)"]
+    },
+    {
+      "name": "categorias",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.role = 'ADMIN'",
+        "update": "@request.auth.role = 'ADMIN'",
+        "delete": "@request.auth.role = 'ADMIN'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_categorias_nome ON categorias (nome)",
+        "CREATE INDEX idx_categorias_ordem ON categorias (ordem)"
+      ]
+    },
+    {
+      "name": "linhas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.role = 'ADMIN'",
+        "update": "@request.auth.role = 'ADMIN'",
+        "delete": "@request.auth.role = 'ADMIN'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_linhas_nome ON linhas (nome)",
+        "CREATE INDEX idx_linhas_ordem ON linhas (ordem)"
+      ]
     }
   ]
 }
