@@ -2,8 +2,9 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { vendasService } from '@/services/vendas'
 import { clientesService } from '@/services/clientes'
+import { enderecosService } from '@/services/enderecos'
 import { calcularDiasPeriodo } from '@/services/disponibilidade'
-import type { VendaRecord, ClienteRecord } from '@/types/database'
+import type { VendaRecord, ClienteRecord, EnderecoRecord } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,13 +18,16 @@ import {
   Download,
   AlertCircle,
   Printer,
+  MapPin,
 } from 'lucide-react'
 import { ContratoModal } from '@/components/ContratoModal'
+import { GerenciadorEnderecos } from '@/components/GerenciadorEnderecos'
 
 export default function ClienteRelatorio() {
   const { user } = useAuth()
   const [vendas, setVendas] = useState<VendaRecord[]>([])
   const [cliente, setCliente] = useState<ClienteRecord | null>(null)
+  const [enderecos, setEnderecos] = useState<EnderecoRecord[]>([])
   const [loading, setLoading] = useState(true)
 
   // Modal Visualizar / Imprimir Contrato
@@ -34,13 +38,17 @@ export default function ClienteRelatorio() {
     const load = async () => {
       try {
         if (!user?.id) return
-        // Carrega vendas do próprio cliente (garantido pelas regras de RLS do PocketBase)
         const [vList, c] = await Promise.all([
           vendasService.getAll(),
           clientesService.getByUsuarioId(user.id).catch(() => null),
         ])
         setVendas(vList)
         setCliente(c)
+
+        if (c?.id) {
+          const ends = await enderecosService.getByClienteId(c.id)
+          setEnderecos(ends)
+        }
       } catch (err) {
         console.error(err)
       } finally {
@@ -49,6 +57,16 @@ export default function ClienteRelatorio() {
     }
     load()
   }, [user])
+
+  const reloadEnderecos = async () => {
+    if (!cliente) return
+    try {
+      const ends = await enderecosService.getByClienteId(cliente.id)
+      setEnderecos(ends)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const totalDiario = useMemo(() => {
     return vendas
@@ -65,6 +83,7 @@ export default function ClienteRelatorio() {
   const totalContratos = useMemo(() => {
     return vendas.reduce((acc, curr) => acc + curr.valor_total, 0)
   }, [vendas])
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
   }
@@ -110,6 +129,36 @@ export default function ClienteRelatorio() {
           </Button>
         </div>
       </div>
+
+      {/* Gestão de Endereços do Cliente */}
+      {cliente && (
+        <div className="rounded-2xl border border-[#E5E0DA] bg-white p-6 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-[#F1ECE6] pb-3">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-[#A67C52]" />
+              <div>
+                <h3 className="font-bold text-base text-[#2B2B2B]">
+                  Meus Endereços de Entrega & Instalação
+                </h3>
+                <p className="text-xs text-[#6B6B6B]">
+                  Gerencie os locais onde seus móveis TIDELLI podem ser entregues e instalados.
+                </p>
+              </div>
+            </div>
+            <Badge className="bg-[#FAF7F3] text-[#2B2B2B] border border-[#E5E0DA]">
+              {enderecos.length} cadastrado(s)
+            </Badge>
+          </div>
+
+          <GerenciadorEnderecos
+            clienteId={cliente.id}
+            clienteNome={cliente.nome}
+            enderecos={enderecos}
+            onEnderecosChange={reloadEnderecos}
+            readOnly={false}
+          />
+        </div>
+      )}
 
       {/* Resumo de Indicadores do Cliente */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -210,6 +259,15 @@ export default function ClienteRelatorio() {
                     Quantidade: <strong>{v.quantidade} unidade(s)</strong> • Categoria:{' '}
                     <strong className="uppercase">
                       {v.expand?.produto?.expand?.tipo?.nome || v.expand?.produto?.tipo || 'MÓVEL'}
+                    </strong>
+                  </p>
+                  <p className="text-xs text-[#6B6B6B] flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-[#A67C52] shrink-0" />
+                    <span>Local de Instalação:</span>{' '}
+                    <strong className="text-[#2B2B2B]">
+                      {v.expand?.endereco
+                        ? enderecosService.formatCurto(v.expand.endereco)
+                        : cliente?.endereco || 'Endereço principal'}
                     </strong>
                   </p>
                   {v.expand?.produto?.dimensoes && (

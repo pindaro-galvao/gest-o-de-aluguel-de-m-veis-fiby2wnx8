@@ -2,7 +2,7 @@ import pb from '@/lib/pocketbase/client'
 import type { VendaRecord } from '@/types/database'
 
 const VENDA_EXPAND =
-  'cliente,produto,produto.tipo,produto.linha,produto.atr01,produto.atr02,produto.atr03,produto.atr04,produto.atr05,produto.atr06,produto.atr07,produto.atr08,produto.atr09,vendedor'
+  'cliente,produto,produto.tipo,produto.linha,produto.atr01,produto.atr02,produto.atr03,produto.atr04,produto.atr05,produto.atr06,produto.atr07,produto.atr08,produto.atr09,vendedor,endereco'
 
 export const vendasService = {
   async getAll(params?: { filter?: string; sort?: string }) {
@@ -29,6 +29,7 @@ export const vendasService = {
     forma_pagamento: string
     status: string
     observacoes?: string
+    endereco?: string
   }) {
     const payload = {
       ...data,

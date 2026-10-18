@@ -1,9 +1,10 @@
 import React from 'react'
 import type { VendaRecord, AtributoRecord } from '@/types/database'
 import { calcularDiasPeriodo } from '@/services/disponibilidade'
+import { enderecosService } from '@/services/enderecos'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Printer, Building2, ShieldCheck, FileText } from 'lucide-react'
+import { Printer, Building2, ShieldCheck, FileText, MapPin } from 'lucide-react'
 
 interface ContratoModalProps {
   venda: VendaRecord | null
@@ -53,6 +54,12 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
     venda.expand?.produto?.valor_locacao_diaria ?? venda.expand?.produto?.valor_locacao_mensal ?? 0
   const diasPeriodo = Math.max(1, calcularDiasPeriodo(venda.data_inicio, venda.data_fim))
   const valorTotalCalculado = valorDiarioUnitario * diasPeriodo * (venda.quantidade || 1)
+
+  // Endereço específico vinculado ao contrato/venda de locação correspondente
+  const enderecoVinculado = venda.expand?.endereco
+  const enderecoLocacaoTexto = enderecoVinculado
+    ? enderecosService.formatResumo(enderecoVinculado)
+    : venda.expand?.cliente?.endereco || 'Endereço cadastrado'
 
   const handlePrint = () => {
     window.print()
@@ -147,7 +154,6 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
               </p>
               <p className="text-[#6B6B6B]">Contato: atendimento@lpmoveis.com.br</p>
             </div>
-
             {/* Locatário */}
             <div className="rounded-lg border border-[#E5E0DA] bg-[#FAF7F3] p-4">
               <h4 className="font-bold text-xs uppercase tracking-wider text-[#A67C52] mb-2 flex items-center gap-1.5">
@@ -164,10 +170,15 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
                 Telefone: <strong>{venda.expand?.cliente?.telefone || 'Não informado'}</strong>
               </p>
               <p className="text-[#6B6B6B] mt-1">
-                Endereço de Instalação:{' '}
-                <strong>{venda.expand?.cliente?.endereco || 'Endereço cadastrado'}</strong>
+                Endereço de Instalação / Objeto deste Contrato:{' '}
+                <strong className="text-[#2B2B2B]">{enderecoLocacaoTexto}</strong>
+                {enderecoVinculado?.identificacao && (
+                  <span className="block text-[10px] text-[#A67C52] font-semibold mt-0.5">
+                    IDENTIFICAÇÃO DO LOCAL: {enderecoVinculado.identificacao}
+                  </span>
+                )}
               </p>
-            </div>
+            </div>{' '}
           </div>
 
           {/* Tabela de Itens Locados */}
@@ -285,7 +296,8 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
               <li>
                 <strong>Objeto e Destinação:</strong> A LOCADORA disponibiliza ao LOCATÁRIO, em
                 regime de locação temporária, os bens descritos neste instrumento, destinados
-                exclusivamente ao uso no endereço informado.
+                exclusivamente ao uso e instalação no endereço especificado neste contrato:{' '}
+                <strong>{enderecoLocacaoTexto}</strong>.
               </li>
               <li>
                 <strong>Conservação e Uso:</strong> O LOCATÁRIO se compromete a zelar pelos móveis

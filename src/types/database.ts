@@ -68,6 +68,23 @@ export interface ProdutoRecord extends RecordModel {
   }
 }
 
+export interface EnderecoRecord extends RecordModel {
+  cliente: string // relation -> clientes
+  identificacao?: string
+  logradouro: string
+  numero: string
+  complemento?: string
+  bairro: string
+  cidade: string
+  uf: string
+  cep?: string
+  principal?: boolean
+  ativo?: boolean
+  expand?: {
+    cliente?: ClienteRecord
+  }
+}
+
 export interface ClienteRecord extends RecordModel {
   nome: string
   email: string
@@ -76,6 +93,7 @@ export interface ClienteRecord extends RecordModel {
   usuario?: string // relation -> users
   expand?: {
     usuario?: UserRecord
+    enderecos_via_cliente?: EnderecoRecord[]
   }
 }
 
@@ -93,10 +111,12 @@ export interface VendaRecord extends RecordModel {
   status: StatusVenda
   observacoes?: string
   vendedor: string // relation -> users
+  endereco?: string // relation -> enderecos
   expand?: {
     cliente?: ClienteRecord
     produto?: ProdutoRecord
     vendedor?: UserRecord
+    endereco?: EnderecoRecord
   }
 }
 
@@ -112,9 +132,11 @@ export interface OrcamentoRecord extends RecordModel {
   data_aprovacao?: string
   data_inicio?: string
   data_fim?: string
+  endereco?: string // relation -> enderecos
   expand?: {
     cliente?: ClienteRecord
     vendedor?: UserRecord
+    endereco?: EnderecoRecord
     orcamento_itens_via_orcamento?: OrcamentoItemRecord[]
   }
 }

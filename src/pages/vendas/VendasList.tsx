@@ -3,6 +3,7 @@ import { vendasService } from '@/services/vendas'
 import { clientesService } from '@/services/clientes'
 import { produtosService } from '@/services/produtos'
 import { usuariosService } from '@/services/usuarios'
+import { enderecosService } from '@/services/enderecos'
 import {
   disponibilidadeService,
   calcularDiasPeriodo,
@@ -15,6 +16,7 @@ import type {
   ClienteRecord,
   ProdutoRecord,
   UserRecord,
+  EnderecoRecord,
   FormaPagamento,
   StatusVenda,
 } from '@/types/database'
@@ -51,8 +53,10 @@ import {
   FileCheck,
   FileText,
   Printer,
+  MapPin,
 } from 'lucide-react'
 import { ContratoModal } from '@/components/ContratoModal'
+import { GerenciadorEnderecos } from '@/components/GerenciadorEnderecos'
 
 interface VendasPageProps {
   isAdminView?: boolean
@@ -81,6 +85,11 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
 
   // Campos do Form de Venda
   const [clienteId, setClienteId] = useState('')
+  const [clienteEnderecos, setClienteEnderecos] = useState<EnderecoRecord[]>([])
+  const [enderecoId, setEnderecoId] = useState('')
+  const [loadingEnderecos, setLoadingEnderecos] = useState(false)
+  const [isModalEnderecoOpen, setIsModalEnderecoOpen] = useState(false)
+
   const [produtoId, setProdutoId] = useState('')
   const [quantidade, setQuantidade] = useState(1)
   const [dataInicio, setDataInicio] = useState('')
@@ -189,8 +198,39 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
     }
   }, [isModalOpen, produtoId, dataInicio, dataFim, quantidade])
 
+  // Carrega endereços sempre que o cliente selecionado mudar no form de venda
+  useEffect(() => {
+    if (!clienteId) {
+      setClienteEnderecos([])
+      setEnderecoId('')
+      return
+    }
+
+    let isMounted = true
+    setLoadingEnderecos(true)
+
+    enderecosService
+      .getByClienteId(clienteId, true)
+      .then((ends) => {
+        if (!isMounted) return
+        setClienteEnderecos(ends)
+        const princ = ends.find((e) => e.principal) || ends[0]
+        setEnderecoId(princ?.id || '')
+        setLoadingEnderecos(false)
+      })
+      .catch((e) => {
+        console.error(e)
+        if (isMounted) setLoadingEnderecos(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [clienteId])
+
   const openCreateModal = () => {
-    setClienteId(clientes[0]?.id || '')
+    const initialCli = clientes[0]?.id || ''
+    setClienteId(initialCli)
     setProdutoId(produtos[0]?.id || '')
     setQuantidade(1)
 
@@ -210,6 +250,7 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
   const validate = () => {
     const errs: Record<string, string> = {}
     if (!clienteId) errs.clienteId = 'Selecione um cliente.'
+    if (!enderecoId) errs.enderecoId = 'Selecione o endereço de instalação/entrega.'
     if (!produtoId) errs.produtoId = 'Selecione um produto.'
     if (quantidade < 1) errs.quantidade = 'Quantidade mínima é 1.'
     if (!dataInicio) errs.dataInicio = 'Data de início é obrigatória.'
@@ -253,6 +294,7 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
 
       await vendasService.create({
         cliente: clienteId,
+        endereco: enderecoId || undefined,
         produto: produtoId,
         quantidade,
         data_inicio: `${dataInicio} 00:00:00.000Z`,
@@ -401,6 +443,7 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
             <thead className="bg-[#FAF7F3] text-xs font-bold uppercase tracking-wider text-[#6B6B6B]">
               <tr>
                 <th className="px-4 py-3 rounded-l-lg">Cliente</th>
+                <th className="px-4 py-3">Endereço de Instalação</th>
                 <th className="px-4 py-3">Móvel TIDELLI</th>
                 <th className="px-4 py-3">Qtd</th>
                 <th className="px-4 py-3">Vigência</th>
@@ -419,6 +462,25 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                       {v.expand?.cliente?.nome || 'Cliente'}
                     </div>
                     <div className="text-xs text-[#6B6B6B]">{v.expand?.cliente?.email}</div>
+                  </td>
+                  <td className="px-4 py-3.5 text-xs">
+                    {v.expand?.endereco ? (
+                      <div
+                        className="flex items-center gap-1.5"
+                        title={enderecosService.formatResumo(v.expand.endereco)}
+                      >
+                        <MapPin className="h-3.5 w-3.5 text-[#A67C52] shrink-0" />
+                        <span className="font-medium text-[#2B2B2B] truncate max-w-[200px]">
+                          {enderecosService.formatCurto(v.expand.endereco)}
+                        </span>
+                      </div>
+                    ) : v.expand?.cliente?.endereco ? (
+                      <span className="truncate max-w-[200px] text-[#6B6B6B] block">
+                        {v.expand.cliente.endereco}
+                      </span>
+                    ) : (
+                      <span className="text-zinc-400 italic">Não vinculado</span>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 font-medium">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -523,7 +585,7 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
           <form onSubmit={handleSave} className="space-y-4 pt-2">
             <div className="space-y-1.5">
               <Label htmlFor="vendaCliente" className="text-xs font-semibold text-[#2B2B2B]">
-                Cliente
+                Cliente *
               </Label>
               <Select value={clienteId} onValueChange={setClienteId}>
                 <SelectTrigger className="bg-[#FBF9F6] border-[#E5E0DA]">
@@ -539,6 +601,68 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
               </Select>
               {formErrors.clienteId && (
                 <p className="text-xs text-red-600">{formErrors.clienteId}</p>
+              )}
+            </div>
+
+            {/* Endereço de instalação do contrato */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="vendaEndereco"
+                  className="text-xs font-semibold text-[#2B2B2B] flex items-center gap-1.5"
+                >
+                  <MapPin className="h-3.5 w-3.5 text-[#A67C52]" />
+                  <span>Endereço de Instalação do Contrato *</span>
+                </Label>
+                {clienteId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsModalEnderecoOpen(true)}
+                    className="h-6 text-[11px] text-[#A67C52] hover:bg-[#FAF7F3] p-1 gap-1"
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>Cadastrar Novo Endereço</span>
+                  </Button>
+                )}
+              </div>
+
+              {loadingEnderecos ? (
+                <div className="p-2 text-xs text-[#6B6B6B] flex items-center gap-2">
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#A67C52] border-t-transparent" />
+                  <span>Carregando endereços do cliente...</span>
+                </div>
+              ) : clienteEnderecos.length === 0 ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-center justify-between">
+                  <span>Este cliente ainda não tem nenhum endereço cadastrado.</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setIsModalEnderecoOpen(true)}
+                    className="h-7 text-xs bg-amber-700 hover:bg-amber-800 text-white"
+                  >
+                    Cadastrar Endereço Agora
+                  </Button>
+                </div>
+              ) : (
+                <Select value={enderecoId} onValueChange={setEnderecoId}>
+                  <SelectTrigger className="bg-[#FBF9F6] border-[#E5E0DA]">
+                    <SelectValue placeholder="Selecione o Endereço de Instalação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clienteEnderecos.map((end) => (
+                      <SelectItem key={end.id} value={end.id}>
+                        {end.principal ? '★ ' : ''}
+                        {end.identificacao ? `[${end.identificacao}] ` : ''}
+                        {end.logradouro}, {end.numero} — {end.bairro}, {end.cidade}/{end.uf}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {formErrors.enderecoId && (
+                <p className="text-xs text-red-600">{formErrors.enderecoId}</p>
               )}
             </div>
 
@@ -760,6 +884,50 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
         open={isContratoOpen}
         onOpenChange={setIsContratoOpen}
       />
+
+      {/* Modal Rápido de Gestão de Endereços do Cliente selecionado */}
+      <Dialog open={isModalEnderecoOpen} onOpenChange={setIsModalEnderecoOpen}>
+        <DialogContent className="max-w-xl bg-white max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-[#2B2B2B]">
+              Gerenciar Endereços do Cliente
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[#6B6B6B]">
+              Cadastre ou gerencie os endereços de entrega deste cliente.
+            </DialogDescription>
+          </DialogHeader>
+
+          {clienteId ? (
+            <GerenciadorEnderecos
+              clienteId={clienteId}
+              clienteNome={clientes.find((c) => c.id === clienteId)?.nome || 'Cliente'}
+              enderecos={clienteEnderecos}
+              onEnderecosChange={() => {
+                enderecosService.getByClienteId(clienteId, true).then((ends) => {
+                  setClienteEnderecos(ends)
+                  const princ = ends.find((e) => e.principal) || ends[0]
+                  if (princ && !enderecoId) {
+                    setEnderecoId(princ.id)
+                  }
+                })
+              }}
+              readOnly={false}
+            />
+          ) : (
+            <p className="text-xs text-[#6B6B6B]">Selecione um cliente primeiro.</p>
+          )}
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              onClick={() => setIsModalEnderecoOpen(false)}
+              className="bg-[#A67C52] hover:bg-[#8C643F] text-white"
+            >
+              Concluído
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -6,13 +6,13 @@ export const orcamentosService = {
     return pb.collection('orcamentos').getFullList<OrcamentoRecord>({
       sort: params?.sort || '-created',
       filter: params?.filter || '',
-      expand: 'cliente,vendedor',
+      expand: 'cliente,vendedor,endereco',
     })
   },
 
   async getById(id: string) {
     const orcamento = await pb.collection('orcamentos').getOne<OrcamentoRecord>(id, {
-      expand: 'cliente,vendedor',
+      expand: 'cliente,vendedor,endereco',
     })
     // Buscar itens
     const itens = await pb.collection('orcamento_itens').getFullList<OrcamentoItemRecord>({
@@ -32,6 +32,7 @@ export const orcamentosService = {
       observacoes?: string
       data_inicio?: string
       data_fim?: string
+      endereco?: string
     },
     itens: Array<{ produto: string; quantidade: number }>,
   ) {
@@ -39,7 +40,9 @@ export const orcamentosService = {
       ...data,
       observacoes: data.observacoes ? data.observacoes.trim().toUpperCase() : '',
     }
-    const orcamento = await pb.collection('orcamentos').create<OrcamentoRecord>(payload)
+    const orcamento = await pb.collection('orcamentos').create<OrcamentoRecord>(payload, {
+      expand: 'cliente,vendedor,endereco',
+    })
     for (const item of itens) {
       await pb.collection('orcamento_itens').create<OrcamentoItemRecord>({
         orcamento: orcamento.id,

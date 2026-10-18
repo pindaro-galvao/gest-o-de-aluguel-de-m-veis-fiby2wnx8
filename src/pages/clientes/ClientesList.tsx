@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { clientesService } from '@/services/clientes'
 import { vendasService } from '@/services/vendas'
 import { orcamentosService } from '@/services/orcamentos'
+import { enderecosService } from '@/services/enderecos'
 import { useAuth } from '@/contexts/AuthContext'
-import type { ClienteRecord, VendaRecord, OrcamentoRecord } from '@/types/database'
+import type { ClienteRecord, VendaRecord, OrcamentoRecord, EnderecoRecord } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -28,7 +29,9 @@ import {
   FileText,
   BadgeDollarSign,
   Receipt,
+  Star,
 } from 'lucide-react'
+import { GerenciadorEnderecos } from '@/components/GerenciadorEnderecos'
 
 export default function ClientesList() {
   const { user, role } = useAuth()
@@ -36,18 +39,32 @@ export default function ClientesList() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
 
+  // Mapa de endereços principais por cliente para exibição na listagem
+  const [enderecosPrincipais, setEnderecosPrincipais] = useState<
+    Record<string, EnderecoRecord | null>
+  >({})
+
   // Modal Novo Cliente
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [telefone, setTelefone] = useState('')
-  const [endereco, setEndereco] = useState('')
+  // Campos do endereço inicial obrigatório/padrão
+  const [endIdentificacao, setEndIdentificacao] = useState('PRINCIPAL')
+  const [endLogradouro, setEndLogradouro] = useState('')
+  const [endNumero, setEndNumero] = useState('')
+  const [endComplemento, setEndComplemento] = useState('')
+  const [endBairro, setEndBairro] = useState('')
+  const [endCidade, setEndCidade] = useState('SÃO PAULO')
+  const [endUf, setEndUf] = useState('SP')
+  const [endCep, setEndCep] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   // Modal Detalhes do Cliente
   const [selectedCliente, setSelectedCliente] = useState<ClienteRecord | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [clienteEnderecos, setClienteEnderecos] = useState<EnderecoRecord[]>([])
   const [clienteVendas, setClienteVendas] = useState<VendaRecord[]>([])
   const [clienteOrcamentos, setClienteOrcamentos] = useState<OrcamentoRecord[]>([])
   const [loadingDetails, setLoadingDetails] = useState(false)
@@ -57,6 +74,21 @@ export default function ClientesList() {
       setLoading(true)
       const list = await clientesService.getAll({ search: searchTerm })
       setClientes(list)
+
+      // Carregar os endereços principais de cada cliente para exibição na tabela
+      const mapPrinc: Record<string, EnderecoRecord | null> = {}
+      await Promise.all(
+        list.map(async (c) => {
+          try {
+            const ends = await enderecosService.getByClienteId(c.id)
+            const princ = ends.find((e) => e.principal) || ends[0] || null
+            mapPrinc[c.id] = princ
+          } catch {
+            mapPrinc[c.id] = null
+          }
+        }),
+      )
+      setEnderecosPrincipais(mapPrinc)
     } catch (err) {
       console.error(err)
       toast({
@@ -77,7 +109,14 @@ export default function ClientesList() {
     setNome('')
     setEmail('')
     setTelefone('')
-    setEndereco('')
+    setEndIdentificacao('PRINCIPAL')
+    setEndLogradouro('')
+    setEndNumero('')
+    setEndComplemento('')
+    setEndBairro('')
+    setEndCidade('SÃO PAULO')
+    setEndUf('SP')
+    setEndCep('')
     setFormErrors({})
     setIsCreateOpen(true)
   }
@@ -86,6 +125,15 @@ export default function ClientesList() {
     const errs: Record<string, string> = {}
     if (!nome.trim()) errs.nome = 'Nome do cliente é obrigatório.'
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) errs.email = 'E-mail válido é obrigatório.'
+
+    // Se preencheu algum dado de endereço, valida os campos obrigatórios
+    if (endLogradouro || endNumero || endBairro || endCidade) {
+      if (!endLogradouro.trim()) errs.endLogradouro = 'Logradouro é obrigatório.'
+      if (!endNumero.trim()) errs.endNumero = 'Número é obrigatório.'
+      if (!endBairro.trim()) errs.endBairro = 'Bairro é obrigatório.'
+      if (!endCidade.trim()) errs.endCidade = 'Cidade é obrigatória.'
+      if (!endUf.trim()) errs.endUf = 'UF é obrigatória.'
+    }
     setFormErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -96,16 +144,37 @@ export default function ClientesList() {
 
     setIsSaving(true)
     try {
-      await clientesService.create({
+      const resumoEndereco = endLogradouro
+        ? `${endLogradouro.trim().toUpperCase()}, ${endNumero.trim().toUpperCase()} - ${endBairro.trim().toUpperCase()}, ${endCidade.trim().toUpperCase()}/${endUf.trim().toUpperCase()}`
+        : ''
+
+      const newCliente = await clientesService.create({
         nome: nome.trim().toUpperCase(),
         email: email.trim(),
         telefone: telefone.trim().toUpperCase(),
-        endereco: endereco.trim().toUpperCase(),
+        endereco: resumoEndereco,
       })
 
+      // Se preencheu endereço, criar registro na coleção enderecos como principal
+      if (endLogradouro.trim()) {
+        await enderecosService.create({
+          cliente: newCliente.id,
+          identificacao: endIdentificacao.trim().toUpperCase() || 'PRINCIPAL',
+          logradouro: endLogradouro.trim().toUpperCase(),
+          numero: endNumero.trim().toUpperCase(),
+          complemento: endComplemento.trim().toUpperCase(),
+          bairro: endBairro.trim().toUpperCase(),
+          cidade: endCidade.trim().toUpperCase(),
+          uf: endUf.trim().toUpperCase(),
+          cep: endCep.trim().toUpperCase(),
+          principal: true,
+          ativo: true,
+        })
+      }
+
       toast({
-        title: 'Cliente cadastrado!',
-        description: `${nome} foi adicionado à base com sucesso.`,
+        title: 'Cliente cadastrado com sucesso!',
+        description: `${nome} foi adicionado à base com seu endereço cadastrado.`,
       })
 
       setIsCreateOpen(false)
@@ -122,16 +191,31 @@ export default function ClientesList() {
     }
   }
 
+  const reloadClienteEnderecos = async (cId: string) => {
+    try {
+      const ends = await enderecosService.getByClienteId(cId)
+      setClienteEnderecos(ends)
+      // Atualizar também o resumo no mapa de clientes
+      const princ = ends.find((e) => e.principal) || ends[0] || null
+      setEnderecosPrincipais((prev) => ({ ...prev, [cId]: princ }))
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const handleOpenDetail = async (c: ClienteRecord) => {
     setSelectedCliente(c)
     setIsDetailOpen(true)
     setLoadingDetails(true)
 
     try {
-      // Buscar vendas do cliente
-      // Regra de especificação: o VENDEDOR vê apenas as vendas/orçamentos de sua própria autoria daquele cliente; o ADMIN vê tudo.
-      const todasVendas = await vendasService.getAll()
-      const todosOrcamentos = await orcamentosService.getAll()
+      const [ends, todasVendas, todosOrcamentos] = await Promise.all([
+        enderecosService.getByClienteId(c.id),
+        vendasService.getAll(),
+        orcamentosService.getAll(),
+      ])
+
+      setClienteEnderecos(ends)
 
       let vendasDoCliente = todasVendas.filter((v) => v.cliente === c.id)
       let orcamentosDoCliente = todosOrcamentos.filter((o) => o.cliente === c.id)
@@ -240,7 +324,21 @@ export default function ClientesList() {
                     )}
                   </td>
                   <td className="px-4 py-3.5 text-xs text-[#6B6B6B] max-w-xs truncate">
-                    {c.endereco || '-'}
+                    {enderecosPrincipais[c.id] ? (
+                      <div
+                        className="flex items-center gap-1.5"
+                        title={enderecosService.formatResumo(enderecosPrincipais[c.id])}
+                      >
+                        <MapPin className="h-3 w-3 text-[#A67C52] shrink-0" />
+                        <span className="truncate">
+                          {enderecosService.formatCurto(enderecosPrincipais[c.id])}
+                        </span>
+                      </div>
+                    ) : c.endereco ? (
+                      <span className="truncate">{c.endereco}</span>
+                    ) : (
+                      <span className="text-zinc-400 italic">Sem endereço</span>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 text-xs text-[#6B6B6B]">
                     {c.created ? new Date(c.created).toLocaleDateString('pt-BR') : '-'}
@@ -263,76 +361,223 @@ export default function ClientesList() {
         )}
       </div>
 
-      {/* Modal Criar Cliente */}
+      {/* Modal Criar Cliente com Endereço Principal Estruturado */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-md bg-white">
+        <DialogContent className="max-w-xl bg-white max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#2B2B2B]">Novo Cliente</DialogTitle>
             <DialogDescription className="text-xs text-[#6B6B6B]">
-              Cadastre os dados de contato do cliente para emissão de locações e orçamentos.
+              Cadastre o cliente e seu endereço principal para locações e orçamentos. Textos em
+              MAIÚSCULO.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSave} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="cliNome" className="text-xs font-semibold text-[#2B2B2B]">
-                Nome Completo / Razão Social
-              </Label>
-              <Input
-                id="cliNome"
-                value={nome}
-                onChange={(e) => {
-                  setNome(e.target.value.toUpperCase())
-                  if (formErrors.nome) setFormErrors((p) => ({ ...p, nome: '' }))
-                }}
-                placeholder="Ex: MARIANA SILVA OU STUDIO DESIGN"
-                className="bg-[#FBF9F6] border-[#E5E0DA]"
-              />
-              {formErrors.nome && <p className="text-xs text-red-600">{formErrors.nome}</p>}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#A67C52]">
+                Dados Básicos do Cliente
+              </h4>
+
+              <div className="space-y-1">
+                <Label htmlFor="cliNome" className="text-xs font-semibold text-[#2B2B2B]">
+                  Nome Completo / Razão Social *
+                </Label>
+                <Input
+                  id="cliNome"
+                  value={nome}
+                  onChange={(e) => {
+                    setNome(e.target.value.toUpperCase())
+                    if (formErrors.nome) setFormErrors((p) => ({ ...p, nome: '' }))
+                  }}
+                  placeholder="EX: MARIANA SILVA OU STUDIO DESIGN"
+                  className="bg-[#FBF9F6] border-[#E5E0DA]"
+                />
+                {formErrors.nome && <p className="text-xs text-red-600">{formErrors.nome}</p>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="cliEmail" className="text-xs font-semibold text-[#2B2B2B]">
+                    E-mail Principal *
+                  </Label>
+                  <Input
+                    id="cliEmail"
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (formErrors.email) setFormErrors((p) => ({ ...p, email: '' }))
+                    }}
+                    placeholder="mariana@cliente.com.br"
+                    className="bg-[#FBF9F6] border-[#E5E0DA]"
+                  />
+                  {formErrors.email && <p className="text-xs text-red-600">{formErrors.email}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="cliTel" className="text-xs font-semibold text-[#2B2B2B]">
+                    Telefone / WhatsApp
+                  </Label>
+                  <Input
+                    id="cliTel"
+                    value={telefone}
+                    onChange={(e) => setTelefone(e.target.value)}
+                    placeholder="(11) 98765-4321"
+                    className="bg-[#FBF9F6] border-[#E5E0DA]"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="cliEmail" className="text-xs font-semibold text-[#2B2B2B]">
-                E-mail Principal
-              </Label>
-              <Input
-                id="cliEmail"
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value)
-                  if (formErrors.email) setFormErrors((p) => ({ ...p, email: '' }))
-                }}
-                placeholder="mariana@cliente.com.br"
-                className="bg-[#FBF9F6] border-[#E5E0DA]"
-              />
-              {formErrors.email && <p className="text-xs text-red-600">{formErrors.email}</p>}
-            </div>
+            {/* Seção Endereço Inicial */}
+            <div className="space-y-3 pt-3 border-t border-[#F1ECE6]">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#A67C52] flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span>Endereço Principal de Instalação / Entrega</span>
+                </h4>
+                <Badge className="bg-[#FAF7F3] text-[#A67C52] border border-[#E5E0DA] text-[10px]">
+                  Principal
+                </Badge>
+              </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="cliTel" className="text-xs font-semibold text-[#2B2B2B]">
-                Telefone / WhatsApp
-              </Label>
-              <Input
-                id="cliTel"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
-                placeholder="(11) 98765-4321"
-                className="bg-[#FBF9F6] border-[#E5E0DA]"
-              />
-            </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <Label htmlFor="endIdent" className="text-xs font-semibold text-[#2B2B2B]">
+                    Identificação do Endereço
+                  </Label>
+                  <Input
+                    id="endIdent"
+                    value={endIdentificacao}
+                    onChange={(e) => setEndIdentificacao(e.target.value.toUpperCase())}
+                    placeholder="EX: RESIDÊNCIA, SEDE..."
+                    className="bg-[#FBF9F6] border-[#E5E0DA]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="endCep" className="text-xs font-semibold text-[#2B2B2B]">
+                    CEP
+                  </Label>
+                  <Input
+                    id="endCep"
+                    value={endCep}
+                    onChange={(e) => setEndCep(e.target.value.toUpperCase())}
+                    placeholder="01310-200"
+                    className="bg-[#FBF9F6] border-[#E5E0DA]"
+                  />
+                </div>
+              </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="cliEnd" className="text-xs font-semibold text-[#2B2B2B]">
-                Endereço de Entrega / Cobrança
-              </Label>
-              <Input
-                id="cliEnd"
-                value={endereco}
-                onChange={(e) => setEndereco(e.target.value.toUpperCase())}
-                placeholder="AV. PAULISTA, 1500, APTO 82 - BELA VISTA, SÃO PAULO/SP"
-                className="bg-[#FBF9F6] border-[#E5E0DA]"
-              />
+              <div className="grid grid-cols-4 gap-3">
+                <div className="col-span-3 space-y-1">
+                  <Label htmlFor="endLogr" className="text-xs font-semibold text-[#2B2B2B]">
+                    Logradouro *
+                  </Label>
+                  <Input
+                    id="endLogr"
+                    value={endLogradouro}
+                    onChange={(e) => {
+                      setEndLogradouro(e.target.value.toUpperCase())
+                      if (formErrors.endLogradouro)
+                        setFormErrors((p) => ({ ...p, endLogradouro: '' }))
+                    }}
+                    placeholder="AV. PAULISTA"
+                    className="bg-[#FBF9F6] border-[#E5E0DA]"
+                  />
+                  {formErrors.endLogradouro && (
+                    <p className="text-xs text-red-600">{formErrors.endLogradouro}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="endNum" className="text-xs font-semibold text-[#2B2B2B]">
+                    Número *
+                  </Label>
+                  <Input
+                    id="endNum"
+                    value={endNumero}
+                    onChange={(e) => {
+                      setEndNumero(e.target.value.toUpperCase())
+                      if (formErrors.endNumero) setFormErrors((p) => ({ ...p, endNumero: '' }))
+                    }}
+                    placeholder="1500"
+                    className="bg-[#FBF9F6] border-[#E5E0DA]"
+                  />
+                  {formErrors.endNumero && (
+                    <p className="text-xs text-red-600">{formErrors.endNumero}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="endComp" className="text-xs font-semibold text-[#2B2B2B]">
+                    Complemento
+                  </Label>
+                  <Input
+                    id="endComp"
+                    value={endComplemento}
+                    onChange={(e) => setEndComplemento(e.target.value.toUpperCase())}
+                    placeholder="APTO 82..."
+                    className="bg-[#FBF9F6] border-[#E5E0DA]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="endBairro" className="text-xs font-semibold text-[#2B2B2B]">
+                    Bairro *
+                  </Label>
+                  <Input
+                    id="endBairro"
+                    value={endBairro}
+                    onChange={(e) => {
+                      setEndBairro(e.target.value.toUpperCase())
+                      if (formErrors.endBairro) setFormErrors((p) => ({ ...p, endBairro: '' }))
+                    }}
+                    placeholder="BELA VISTA"
+                    className="bg-[#FBF9F6] border-[#E5E0DA]"
+                  />
+                  {formErrors.endBairro && (
+                    <p className="text-xs text-red-600">{formErrors.endBairro}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <Label htmlFor="endCidade" className="text-xs font-semibold text-[#2B2B2B]">
+                    Cidade *
+                  </Label>
+                  <Input
+                    id="endCidade"
+                    value={endCidade}
+                    onChange={(e) => {
+                      setEndCidade(e.target.value.toUpperCase())
+                      if (formErrors.endCidade) setFormErrors((p) => ({ ...p, endCidade: '' }))
+                    }}
+                    placeholder="SÃO PAULO"
+                    className="bg-[#FBF9F6] border-[#E5E0DA]"
+                  />
+                  {formErrors.endCidade && (
+                    <p className="text-xs text-red-600">{formErrors.endCidade}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="endUf" className="text-xs font-semibold text-[#2B2B2B]">
+                    UF *
+                  </Label>
+                  <Input
+                    id="endUf"
+                    maxLength={2}
+                    value={endUf}
+                    onChange={(e) => {
+                      setEndUf(e.target.value.toUpperCase())
+                      if (formErrors.endUf) setFormErrors((p) => ({ ...p, endUf: '' }))
+                    }}
+                    placeholder="SP"
+                    className="bg-[#FBF9F6] border-[#E5E0DA] text-center"
+                  />
+                  {formErrors.endUf && <p className="text-xs text-red-600">{formErrors.endUf}</p>}
+                </div>
+              </div>
             </div>
 
             <DialogFooter className="pt-3">
@@ -349,7 +594,7 @@ export default function ClientesList() {
                 disabled={isSaving}
                 className="bg-[#A67C52] hover:bg-[#8C643F] text-white"
               >
-                {isSaving ? 'Salvando...' : 'Cadastrar Cliente'}
+                {isSaving ? 'Salvando...' : 'Cadastrar Cliente & Endereço'}
               </Button>
             </DialogFooter>
           </form>
@@ -385,13 +630,18 @@ export default function ClientesList() {
                       {selectedCliente.telefone || 'Não informado'}
                     </span>
                   </div>
-                  <div className="sm:col-span-2">
-                    <span className="text-[#6B6B6B] block">Endereço:</span>
-                    <span className="font-semibold text-[#2B2B2B]">
-                      {selectedCliente.endereco || 'Não informado'}
-                    </span>
-                  </div>
                 </div>
+              </div>
+
+              {/* Gestão Completa de Múltiplos Endereços do Cliente */}
+              <div className="rounded-xl border border-[#E5E0DA] bg-white p-4">
+                <GerenciadorEnderecos
+                  clienteId={selectedCliente.id}
+                  clienteNome={selectedCliente.nome}
+                  enderecos={clienteEnderecos}
+                  onEnderecosChange={() => reloadClienteEnderecos(selectedCliente.id)}
+                  readOnly={role === 'CLIENTE'}
+                />
               </div>
 
               {/* Contratos / Locações Ativas */}

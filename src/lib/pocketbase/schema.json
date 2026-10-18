@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T18:11:44.964Z",
+  "generatedAt": "2026-10-18T18:26:07.879Z",
   "collections": [
     {
       "name": "users",
@@ -372,13 +372,21 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "endereco",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "enderecos"
         }
       ],
       "indexes": [
         "CREATE INDEX idx_vendas_vendedor ON vendas (vendedor)",
         "CREATE INDEX idx_vendas_cliente ON vendas (cliente)",
         "CREATE INDEX idx_vendas_status ON vendas (status)",
-        "CREATE INDEX idx_vendas_created ON vendas (created DESC)"
+        "CREATE INDEX idx_vendas_created ON vendas (created DESC)",
+        "CREATE INDEX idx_vendas_endereco ON vendas (endereco)"
       ]
     },
     {
@@ -462,13 +470,21 @@
           "type": "date",
           "required": false,
           "system": false
+        },
+        {
+          "name": "endereco",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "enderecos"
         }
       ],
       "indexes": [
         "CREATE INDEX idx_orcamentos_vendedor ON orcamentos (vendedor)",
         "CREATE INDEX idx_orcamentos_cliente ON orcamentos (cliente)",
         "CREATE INDEX idx_orcamentos_status ON orcamentos (status)",
-        "CREATE INDEX idx_orcamentos_created ON orcamentos (created DESC)"
+        "CREATE INDEX idx_orcamentos_created ON orcamentos (created DESC)",
+        "CREATE INDEX idx_orcamentos_endereco ON orcamentos (endereco)"
       ]
     },
     {
@@ -674,6 +690,105 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_atributos_codigo_atr ON atributos (codigo_atr)"]
+    },
+    {
+      "name": "enderecos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR' || cliente.usuario = @request.auth.id",
+        "view": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR' || cliente.usuario = @request.auth.id",
+        "create": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR' || cliente.usuario = @request.auth.id",
+        "update": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR' || cliente.usuario = @request.auth.id",
+        "delete": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR' || cliente.usuario = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "cliente",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "clientes"
+        },
+        {
+          "name": "identificacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logradouro",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "numero",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "complemento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bairro",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cidade",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "uf",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cep",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "principal",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_enderecos_cliente ON enderecos (cliente)",
+        "CREATE INDEX idx_enderecos_principal ON enderecos (principal)",
+        "CREATE INDEX idx_enderecos_ativo ON enderecos (ativo)"
+      ]
     }
   ]
 }
