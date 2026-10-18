@@ -183,6 +183,8 @@ export const disponibilidadeService = {
     }
 
     // Busca orçamentos aprovados que incluam esse produto
+    // Nota: orçamentos com status 'convertido' já viraram venda na tabela 'vendas',
+    // portanto não devem ser contados em duplicidade com as vendas ativas.
     let itensAprovados: Array<{ quantidade: number; orcamento: OrcamentoRecord }> = []
     try {
       const orcItens = await pb.collection('orcamento_itens').getFullList<OrcamentoItemRecord>({

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T18:26:07.879Z",
+  "generatedAt": "2026-10-18T18:53:31.905Z",
   "collections": [
     {
       "name": "users",
@@ -379,6 +379,13 @@
           "required": false,
           "system": false,
           "collectionRef": "enderecos"
+        },
+        {
+          "name": "orcamento_origem",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "orcamentos"
         }
       ],
       "indexes": [
@@ -386,7 +393,8 @@
         "CREATE INDEX idx_vendas_cliente ON vendas (cliente)",
         "CREATE INDEX idx_vendas_status ON vendas (status)",
         "CREATE INDEX idx_vendas_created ON vendas (created DESC)",
-        "CREATE INDEX idx_vendas_endereco ON vendas (endereco)"
+        "CREATE INDEX idx_vendas_endereco ON vendas (endereco)",
+        "CREATE INDEX idx_vendas_orcamento_origem ON vendas (orcamento_origem)"
       ]
     },
     {
@@ -424,7 +432,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["rascunho", "enviado", "aprovado", "recusado", "expirado"]
+          "selectValues": ["rascunho", "enviado", "aprovado", "recusado", "expirado", "convertido"]
         },
         {
           "name": "observacoes",
@@ -477,6 +485,12 @@
           "required": false,
           "system": false,
           "collectionRef": "enderecos"
+        },
+        {
+          "name": "data_recusa",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

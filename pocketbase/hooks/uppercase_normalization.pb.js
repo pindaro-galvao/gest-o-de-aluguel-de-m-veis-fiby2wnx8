@@ -24,7 +24,7 @@ const TEXT_FIELDS_TO_UPPERCASE = {
 
 for (const [colName, fields] of Object.entries(TEXT_FIELDS_TO_UPPERCASE)) {
   const handler = (e) => {
-    if (!e.record) return
+    if (!e.record) return e.next()
     for (const field of fields) {
       try {
         const val = e.record.getString(field)
@@ -36,6 +36,7 @@ for (const [colName, fields] of Object.entries(TEXT_FIELDS_TO_UPPERCASE)) {
         }
       } catch (_) {}
     }
+    return e.next()
   }
 
   onRecordCreateRequest(handler, colName)

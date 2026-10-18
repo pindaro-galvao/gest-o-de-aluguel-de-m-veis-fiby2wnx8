@@ -2,7 +2,7 @@ import pb from '@/lib/pocketbase/client'
 import type { VendaRecord } from '@/types/database'
 
 const VENDA_EXPAND =
-  'cliente,produto,produto.tipo,produto.linha,produto.atr01,produto.atr02,produto.atr03,produto.atr04,produto.atr05,produto.atr06,produto.atr07,produto.atr08,produto.atr09,vendedor,endereco'
+  'cliente,produto,produto.tipo,produto.linha,produto.atr01,produto.atr02,produto.atr03,produto.atr04,produto.atr05,produto.atr06,produto.atr07,produto.atr08,produto.atr09,vendedor,endereco,orcamento_origem'
 
 export const vendasService = {
   async getAll(params?: { filter?: string; sort?: string }) {
@@ -30,12 +30,13 @@ export const vendasService = {
     status: string
     observacoes?: string
     endereco?: string
+    orcamento_origem?: string
+    vendedor?: string
   }) {
     const payload = {
       ...data,
       observacoes: data.observacoes ? data.observacoes.trim().toUpperCase() : '',
     }
-    // Vendedor é gravado automaticamente pelo backend hook, mas podemos passar seguro
     return pb.collection('vendas').create<VendaRecord>(payload, {
       expand: VENDA_EXPAND,
     })

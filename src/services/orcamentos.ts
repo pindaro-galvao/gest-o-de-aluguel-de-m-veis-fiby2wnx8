@@ -53,12 +53,37 @@ export const orcamentosService = {
     return orcamento
   },
 
-  async updateStatus(id: string, status: string, dataAprovacao?: string) {
-    const payload: { status: string; data_aprovacao?: string } = { status }
-    if (dataAprovacao) {
-      payload.data_aprovacao = dataAprovacao
+  async updateStatus(
+    id: string,
+    status: string,
+    extraFields?: { data_aprovacao?: string; data_recusa?: string; validade?: string },
+  ) {
+    const payload: Record<string, unknown> = { status }
+    if (extraFields?.data_aprovacao !== undefined) {
+      payload.data_aprovacao = extraFields.data_aprovacao
     }
-    return pb.collection('orcamentos').update<OrcamentoRecord>(id, payload)
+    if (extraFields?.data_recusa !== undefined) {
+      payload.data_recusa = extraFields.data_recusa
+    }
+    if (extraFields?.validade !== undefined) {
+      payload.validade = extraFields.validade
+    }
+    return pb.collection('orcamentos').update<OrcamentoRecord>(id, payload, {
+      expand: 'cliente,vendedor,endereco',
+    })
+  },
+
+  async revalidarEReenviar(id: string, novaValidade: string) {
+    return pb.collection('orcamentos').update<OrcamentoRecord>(
+      id,
+      {
+        status: 'enviado',
+        validade: novaValidade,
+      },
+      {
+        expand: 'cliente,vendedor,endereco',
+      },
+    )
   },
 
   async getItensForOrcamento(orcamentoId: string) {

@@ -496,6 +496,16 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                         Linha {v.expand?.produto?.expand?.linha?.nome || v.expand?.produto?.linha}
                       </div>
                     )}
+                    {v.orcamento_origem && (
+                      <div
+                        className="text-[10px] text-[#8C8C8C] flex items-center gap-1 mt-0.5"
+                        title={`Origem do orçamento #${v.orcamento_origem}`}
+                      >
+                        <span className="bg-[#FAF7F3] text-[#A67C52] px-1 py-0.2 rounded border border-[#E5E0DA] font-mono">
+                          Orç. #{v.orcamento_origem.slice(0, 7).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3.5">{v.quantidade} un.</td>
                   <td className="px-4 py-3.5 text-xs text-[#6B6B6B]">

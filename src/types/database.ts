@@ -112,15 +112,23 @@ export interface VendaRecord extends RecordModel {
   observacoes?: string
   vendedor: string // relation -> users
   endereco?: string // relation -> enderecos
+  orcamento_origem?: string // relation -> orcamentos
   expand?: {
     cliente?: ClienteRecord
     produto?: ProdutoRecord
     vendedor?: UserRecord
     endereco?: EnderecoRecord
+    orcamento_origem?: OrcamentoRecord
   }
 }
 
-export type StatusOrcamento = 'rascunho' | 'enviado' | 'aprovado' | 'recusado' | 'expirado'
+export type StatusOrcamento =
+  | 'rascunho'
+  | 'enviado'
+  | 'aprovado'
+  | 'recusado'
+  | 'expirado'
+  | 'convertido'
 
 export interface OrcamentoRecord extends RecordModel {
   cliente: string // relation -> clientes
@@ -130,6 +138,7 @@ export interface OrcamentoRecord extends RecordModel {
   observacoes?: string
   vendedor: string // relation -> users
   data_aprovacao?: string
+  data_recusa?: string
   data_inicio?: string
   data_fim?: string
   endereco?: string // relation -> enderecos
