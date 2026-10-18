@@ -464,7 +464,7 @@ export default function AdminRelatorios() {
                       {new Date(v.data_inicio).toLocaleDateString('pt-BR')} a{' '}
                       {new Date(v.data_fim).toLocaleDateString('pt-BR')}
                     </td>
-                    <td className="px-3 py-2.5 text-xs capitalize">
+                    <td className="px-3 py-2.5 text-xs uppercase">
                       {v.forma_pagamento.replace(/_/g, ' ')}
                     </td>
                     <td className="px-3 py-2.5 font-bold">{formatCurrency(v.valor_total)}</td>

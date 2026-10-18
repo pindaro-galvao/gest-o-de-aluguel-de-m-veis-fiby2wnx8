@@ -38,8 +38,10 @@ export const atributosService = {
 
   async update(id: string, data: Partial<AtributoRecord>) {
     const payload: Partial<AtributoRecord> = { ...data }
-    if (typeof payload.codigo_atr === 'string') payload.codigo_atr = payload.codigo_atr.trim().toUpperCase()
-    if (typeof payload.descricao_atr === 'string') payload.descricao_atr = payload.descricao_atr.trim().toUpperCase()
+    if (typeof payload.codigo_atr === 'string')
+      payload.codigo_atr = payload.codigo_atr.trim().toUpperCase()
+    if (typeof payload.descricao_atr === 'string')
+      payload.descricao_atr = payload.descricao_atr.trim().toUpperCase()
     return pb.collection('atributos').update<AtributoRecord>(id, payload)
   },
 

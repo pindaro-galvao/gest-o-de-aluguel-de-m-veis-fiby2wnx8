@@ -97,10 +97,10 @@ export default function ClientesList() {
     setIsSaving(true)
     try {
       await clientesService.create({
-        nome: nome.trim(),
+        nome: nome.trim().toUpperCase(),
         email: email.trim(),
-        telefone: telefone.trim(),
-        endereco: endereco.trim(),
+        telefone: telefone.trim().toUpperCase(),
+        endereco: endereco.trim().toUpperCase(),
       })
 
       toast({
@@ -282,10 +282,10 @@ export default function ClientesList() {
                 id="cliNome"
                 value={nome}
                 onChange={(e) => {
-                  setNome(e.target.value)
+                  setNome(e.target.value.toUpperCase())
                   if (formErrors.nome) setFormErrors((p) => ({ ...p, nome: '' }))
                 }}
-                placeholder="Ex: Mariana Silva ou Studio Design"
+                placeholder="Ex: MARIANA SILVA OU STUDIO DESIGN"
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
               />
               {formErrors.nome && <p className="text-xs text-red-600">{formErrors.nome}</p>}
@@ -329,8 +329,8 @@ export default function ClientesList() {
               <Input
                 id="cliEnd"
                 value={endereco}
-                onChange={(e) => setEndereco(e.target.value)}
-                placeholder="Av. Paulista, 1500, Apto 82 - Bela Vista, São Paulo/SP"
+                onChange={(e) => setEndereco(e.target.value.toUpperCase())}
+                placeholder="AV. PAULISTA, 1500, APTO 82 - BELA VISTA, SÃO PAULO/SP"
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
               />
             </div>

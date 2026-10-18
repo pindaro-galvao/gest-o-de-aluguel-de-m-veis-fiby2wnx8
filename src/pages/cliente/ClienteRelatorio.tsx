@@ -208,8 +208,8 @@ export default function ClienteRelatorio() {
                   </div>
                   <p className="text-xs text-[#6B6B6B]">
                     Quantidade: <strong>{v.quantidade} unidade(s)</strong> • Categoria:{' '}
-                    <strong className="capitalize">
-                      {v.expand?.produto?.expand?.tipo?.nome || v.expand?.produto?.tipo || 'Móvel'}
+                    <strong className="uppercase">
+                      {v.expand?.produto?.expand?.tipo?.nome || v.expand?.produto?.tipo || 'MÓVEL'}
                     </strong>
                   </p>
                   {v.expand?.produto?.dimensoes && (

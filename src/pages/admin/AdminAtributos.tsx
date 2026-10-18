@@ -117,7 +117,7 @@ export default function AdminAtributos() {
   const validate = () => {
     const errs: Record<string, string> = {}
     const trimmedCod = codigoAtr.trim().toUpperCase()
-    const trimmedDesc = descricaoAtr.trim()
+    const trimmedDesc = descricaoAtr.trim().toUpperCase()
 
     if (!trimmedCod) {
       errs.codigoAtr = 'O código do atributo (CODIGO_ATR) é obrigatório.'
@@ -147,7 +147,7 @@ export default function AdminAtributos() {
     try {
       const payload = {
         codigo_atr: codigoAtr.trim().toUpperCase(),
-        descricao_atr: descricaoAtr.trim(),
+        descricao_atr: descricaoAtr.trim().toUpperCase(),
         ativo,
       }
 
@@ -406,10 +406,10 @@ export default function AdminAtributos() {
                 id="atrDescricao"
                 value={descricaoAtr}
                 onChange={(e) => {
-                  setDescricaoAtr(e.target.value)
+                  setDescricaoAtr(e.target.value.toUpperCase())
                   if (formErrors.descricaoAtr) setFormErrors((p) => ({ ...p, descricaoAtr: '' }))
                 }}
-                placeholder="Ex: Tecido Linho Bege, Madeira Tauari..."
+                placeholder="Ex: TECIDO LINHO BEGE, MADEIRA TAUARI..."
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
               />
               {formErrors.descricaoAtr && (

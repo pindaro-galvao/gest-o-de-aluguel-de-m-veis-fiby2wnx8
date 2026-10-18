@@ -29,7 +29,8 @@ export const categoriasService = {
   async update(id: string, data: Partial<CategoriaRecord>) {
     const payload: Partial<CategoriaRecord> = { ...data }
     if (typeof payload.nome === 'string') payload.nome = payload.nome.trim().toUpperCase()
-    if (typeof payload.descricao === 'string') payload.descricao = payload.descricao.trim().toUpperCase()
+    if (typeof payload.descricao === 'string')
+      payload.descricao = payload.descricao.trim().toUpperCase()
     return pb.collection('categorias').update<CategoriaRecord>(id, payload)
   },
 

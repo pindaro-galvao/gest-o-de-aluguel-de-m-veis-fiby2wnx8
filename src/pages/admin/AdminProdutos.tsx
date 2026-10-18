@@ -273,12 +273,12 @@ export default function AdminProdutos() {
     setIsSaving(true)
     try {
       const formData = new FormData()
-      formData.append('codigo', codigo.trim())
-      formData.append('nome', nome.trim())
+      formData.append('codigo', codigo.trim().toUpperCase())
+      formData.append('nome', nome.trim().toUpperCase())
       formData.append('tipo', tipoId)
       formData.append('linha', linhaId === 'NONE' ? '' : linhaId)
-      formData.append('dimensoes', dimensoes.trim())
-      formData.append('descricao', descricao.trim())
+      formData.append('dimensoes', dimensoes.trim().toUpperCase())
+      formData.append('descricao', descricao.trim().toUpperCase())
       formData.append('quantidade_estoque', String(quantidadeEstoque))
       formData.append('valor_locacao_diaria', String(valorLocacaoDiaria))
       formData.append('valor_locacao_mensal', String(valorLocacaoDiaria))
@@ -709,7 +709,7 @@ export default function AdminProdutos() {
                   id="prodCodigo"
                   value={codigo}
                   onChange={(e) => {
-                    setCodigo(e.target.value)
+                    setCodigo(e.target.value.toUpperCase())
                     if (formErrors.codigo) setFormErrors((p) => ({ ...p, codigo: '' }))
                   }}
                   placeholder="Ex: TDL-MAU-001"
@@ -726,10 +726,10 @@ export default function AdminProdutos() {
                   id="prodNome"
                   value={nome}
                   onChange={(e) => {
-                    setNome(e.target.value)
+                    setNome(e.target.value.toUpperCase())
                     if (formErrors.nome) setFormErrors((p) => ({ ...p, nome: '' }))
                   }}
-                  placeholder="Ex: Sofá Retrátil Maui 3 Lugares"
+                  placeholder="Ex: SOFÁ RETRÁTIL MAUI 3 LUGARES"
                   className="bg-[#FBF9F6] border-[#E5E0DA]"
                 />
                 {formErrors.nome && <p className="text-xs text-red-600">{formErrors.nome}</p>}
@@ -790,8 +790,8 @@ export default function AdminProdutos() {
                 <Input
                   id="prodDim"
                   value={dimensoes}
-                  onChange={(e) => setDimensoes(e.target.value)}
-                  placeholder="Ex: 240 x 110 x 85 cm"
+                  onChange={(e) => setDimensoes(e.target.value.toUpperCase())}
+                  placeholder="Ex: 240 X 110 X 85 CM"
                   className="bg-[#FBF9F6] border-[#E5E0DA]"
                 />
               </div>
@@ -843,8 +843,8 @@ export default function AdminProdutos() {
                 id="prodDesc"
                 rows={2}
                 value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Detalhes de materiais, corda náutica, estrutura de alumínio, tecidos..."
+                onChange={(e) => setDescricao(e.target.value.toUpperCase())}
+                placeholder="DETALHES DE MATERIAIS, CORDA NÁUTICA, ESTRUTURA DE ALUMÍNIO, TECIDOS..."
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
               />
             </div>

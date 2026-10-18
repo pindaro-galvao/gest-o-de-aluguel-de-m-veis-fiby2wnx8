@@ -3,7 +3,9 @@ import type { ProdutoRecord } from '@/types/database'
 
 const PRODUTO_EXPAND = 'tipo,linha,atr01,atr02,atr03,atr04,atr05,atr06,atr07,atr08,atr09'
 
-function normalizarProdutoData(data: FormData | Partial<ProdutoRecord>): FormData | Partial<ProdutoRecord> {
+function normalizarProdutoData(
+  data: FormData | Partial<ProdutoRecord>,
+): FormData | Partial<ProdutoRecord> {
   if (data instanceof FormData) {
     const textFields = ['nome', 'codigo', 'dimensoes', 'descricao', 'tipo_old', 'linha_old']
     for (const f of textFields) {
@@ -17,11 +19,16 @@ function normalizarProdutoData(data: FormData | Partial<ProdutoRecord>): FormDat
 
   const normalized: Partial<ProdutoRecord> = { ...data }
   if (typeof normalized.nome === 'string') normalized.nome = normalized.nome.trim().toUpperCase()
-  if (typeof normalized.codigo === 'string') normalized.codigo = normalized.codigo.trim().toUpperCase()
-  if (typeof normalized.dimensoes === 'string') normalized.dimensoes = normalized.dimensoes.trim().toUpperCase()
-  if (typeof normalized.descricao === 'string') normalized.descricao = normalized.descricao.trim().toUpperCase()
-  if (typeof normalized.tipo_old === 'string') normalized.tipo_old = normalized.tipo_old.trim().toUpperCase()
-  if (typeof normalized.linha_old === 'string') normalized.linha_old = normalized.linha_old.trim().toUpperCase()
+  if (typeof normalized.codigo === 'string')
+    normalized.codigo = normalized.codigo.trim().toUpperCase()
+  if (typeof normalized.dimensoes === 'string')
+    normalized.dimensoes = normalized.dimensoes.trim().toUpperCase()
+  if (typeof normalized.descricao === 'string')
+    normalized.descricao = normalized.descricao.trim().toUpperCase()
+  if (typeof normalized.tipo_old === 'string')
+    normalized.tipo_old = normalized.tipo_old.trim().toUpperCase()
+  if (typeof normalized.linha_old === 'string')
+    normalized.linha_old = normalized.linha_old.trim().toUpperCase()
   return normalized
 }
 

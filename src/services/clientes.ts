@@ -29,8 +29,10 @@ export const clientesService = {
   async create(data: Partial<ClienteRecord>) {
     const payload: Partial<ClienteRecord> = { ...data }
     if (typeof payload.nome === 'string') payload.nome = payload.nome.trim().toUpperCase()
-    if (typeof payload.endereco === 'string') payload.endereco = payload.endereco.trim().toUpperCase()
-    if (typeof payload.telefone === 'string') payload.telefone = payload.telefone.trim().toUpperCase()
+    if (typeof payload.endereco === 'string')
+      payload.endereco = payload.endereco.trim().toUpperCase()
+    if (typeof payload.telefone === 'string')
+      payload.telefone = payload.telefone.trim().toUpperCase()
     if (typeof payload.email === 'string') payload.email = payload.email.trim()
     return pb.collection('clientes').create<ClienteRecord>(payload)
   },
@@ -38,8 +40,10 @@ export const clientesService = {
   async update(id: string, data: Partial<ClienteRecord>) {
     const payload: Partial<ClienteRecord> = { ...data }
     if (typeof payload.nome === 'string') payload.nome = payload.nome.trim().toUpperCase()
-    if (typeof payload.endereco === 'string') payload.endereco = payload.endereco.trim().toUpperCase()
-    if (typeof payload.telefone === 'string') payload.telefone = payload.telefone.trim().toUpperCase()
+    if (typeof payload.endereco === 'string')
+      payload.endereco = payload.endereco.trim().toUpperCase()
+    if (typeof payload.telefone === 'string')
+      payload.telefone = payload.telefone.trim().toUpperCase()
     if (typeof payload.email === 'string') payload.email = payload.email.trim()
     return pb.collection('clientes').update<ClienteRecord>(id, payload)
   },

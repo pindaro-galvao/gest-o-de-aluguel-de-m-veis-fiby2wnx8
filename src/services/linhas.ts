@@ -29,7 +29,8 @@ export const linhasService = {
   async update(id: string, data: Partial<LinhaRecord>) {
     const payload: Partial<LinhaRecord> = { ...data }
     if (typeof payload.nome === 'string') payload.nome = payload.nome.trim().toUpperCase()
-    if (typeof payload.descricao === 'string') payload.descricao = payload.descricao.trim().toUpperCase()
+    if (typeof payload.descricao === 'string')
+      payload.descricao = payload.descricao.trim().toUpperCase()
     return pb.collection('linhas').update<LinhaRecord>(id, payload)
   },
 

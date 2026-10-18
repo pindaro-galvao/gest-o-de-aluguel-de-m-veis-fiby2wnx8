@@ -254,8 +254,8 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
               </div>
               <div>
                 <span className="text-[#6B6B6B] block">Forma de Pagamento:</span>
-                <span className="font-bold text-[#2B2B2B] text-sm capitalize">
-                  {venda.forma_pagamento ? venda.forma_pagamento.replace(/_/g, ' ') : 'Boleto'}
+                <span className="font-bold text-[#2B2B2B] text-sm uppercase">
+                  {venda.forma_pagamento ? venda.forma_pagamento.replace(/_/g, ' ') : 'BOLETO'}
                 </span>
               </div>
               <div>

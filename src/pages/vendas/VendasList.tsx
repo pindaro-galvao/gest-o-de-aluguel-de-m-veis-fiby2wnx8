@@ -260,7 +260,7 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
         forma_pagamento: formaPagamento,
         valor_total: valorTotalCalculado,
         status,
-        observacoes: observacoes.trim(),
+        observacoes: observacoes.trim().toUpperCase(),
       })
       toast({
         title: 'Locação cadastrada!',
@@ -445,7 +445,7 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                       {calcularDiasPeriodo(v.data_inicio, v.data_fim)} diárias
                     </div>
                   </td>
-                  <td className="px-4 py-3.5 text-xs capitalize">
+                  <td className="px-4 py-3.5 text-xs uppercase">
                     {v.forma_pagamento.replace(/_/g, ' ')}
                   </td>
                   <td className="px-4 py-3.5 font-bold text-[#A67C52]">
@@ -724,8 +724,8 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                 id="obsVenda"
                 rows={2}
                 value={observacoes}
-                onChange={(e) => setObservacoes(e.target.value)}
-                placeholder="Detalhes de entrega, cláusulas de renovação etc."
+                onChange={(e) => setObservacoes(e.target.value.toUpperCase())}
+                placeholder="DETALHES DE ENTREGA, CLÁUSULAS DE RENOVAÇÃO ETC."
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
               />
             </div>

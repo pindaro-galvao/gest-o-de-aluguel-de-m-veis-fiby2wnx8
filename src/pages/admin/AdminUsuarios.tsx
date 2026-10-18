@@ -111,7 +111,7 @@ export default function AdminUsuarios() {
     try {
       if (editingUser) {
         const payload: Partial<UserRecord> & { password?: string; passwordConfirm?: string } = {
-          name: name.trim(),
+          name: name.trim().toUpperCase(),
           role,
         }
         if (password) {
@@ -125,7 +125,7 @@ export default function AdminUsuarios() {
         })
       } else {
         await usuariosService.create({
-          name: name.trim(),
+          name: name.trim().toUpperCase(),
           email: email.trim(),
           password,
           passwordConfirm: password,
@@ -297,10 +297,10 @@ export default function AdminUsuarios() {
                 id="userName"
                 value={name}
                 onChange={(e) => {
-                  setName(e.target.value)
-                  if (formErrors.name) setFormErrors((p) => ({ ...p, name: undefined }))
+                  setName(e.target.value.toUpperCase())
+                  if (formErrors.name) setFormErrors((p) => ({ ...p, name: '' }))
                 }}
-                placeholder="Ex: Carlos Eduardo Mendes"
+                placeholder="Ex: CARLOS OLIVEIRA"
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
               />
               {formErrors.name && <p className="text-xs text-red-600">{formErrors.name}</p>}

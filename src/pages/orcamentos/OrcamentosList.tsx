@@ -252,7 +252,7 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
           data_inicio: dataInicio ? `${dataInicio} 00:00:00.000Z` : undefined,
           data_fim: dataFim ? `${dataFim} 00:00:00.000Z` : undefined,
           status: 'enviado',
-          observacoes: observacoes.trim(),
+          observacoes: observacoes.trim().toUpperCase(),
         },
         itens.map((it) => ({
           produto: it.produtoId,
@@ -709,13 +709,13 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                 Observações e Condições Comerciais
               </Label>
               <Textarea
-                id="orcObs"
+                id="obsOrc"
                 rows={2}
                 value={observacoes}
-                onChange={(e) => setObservacoes(e.target.value)}
-                placeholder="Ex: Condições de frete, montagem e seguro inclusos..."
+                onChange={(e) => setObservacoes(e.target.value.toUpperCase())}
+                placeholder="DETALHES DE ENTREGA, CONDIÇÕES ESPECIAIS NEGOCIADAS..."
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
-              />
+              />{' '}
             </div>
 
             <DialogFooter className="pt-3">
