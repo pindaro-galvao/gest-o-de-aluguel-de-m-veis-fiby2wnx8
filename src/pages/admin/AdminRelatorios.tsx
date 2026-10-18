@@ -19,6 +19,7 @@ import {
   formatDataISO,
   type RelatorioTaxaOcupacaoResultado,
 } from '@/services/disponibilidade'
+import { RelatorioComparativoLinhas } from '@/components/RelatorioComparativoLinhas'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -354,6 +355,16 @@ export default function AdminRelatorios() {
           </Button>
         </div>
       </div>
+
+      {/* Seção Nova: Relatório Comparativo de Faturamento entre Linhas */}
+      <RelatorioComparativoLinhas
+        linhas={linhas}
+        produtos={produtos}
+        vendas={vendas}
+        orcamentos={orcamentos}
+        orcamentoItens={orcamentoItens}
+        loading={loading}
+      />
 
       {/* Cards de Resumo Consolidado */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
