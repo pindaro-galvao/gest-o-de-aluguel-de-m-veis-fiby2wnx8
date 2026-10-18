@@ -3,6 +3,11 @@ import { vendasService } from '@/services/vendas'
 import { clientesService } from '@/services/clientes'
 import { produtosService } from '@/services/produtos'
 import { usuariosService } from '@/services/usuarios'
+import {
+  disponibilidadeService,
+  calcularDiasPeriodo,
+  type DisponibilidadeResultado,
+} from '@/services/disponibilidade'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRealtime } from '@/hooks/use-realtime'
 import type {
@@ -85,6 +90,12 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
   const [observacoes, setObservacoes] = useState('')
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
+  // Estado da verificação em tempo real de disponibilidade
+  const [disponibilidadeInfo, setDisponibilidadeInfo] = useState<DisponibilidadeResultado | null>(
+    null,
+  )
+  const [isCheckingDisp, setIsCheckingDisp] = useState(false)
+
   const loadData = async () => {
     try {
       setLoading(true)
@@ -122,28 +133,61 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
     vendasService.getAll().then(setVendas).catch(console.error)
   })
 
-  // Cálculo automático do valor total: valor mensal do produto * meses de locação * quantidade
+  // Cálculo automático do valor total: diária do produto × número de dias do período × quantidade
   const selectedProduto = useMemo(() => {
     return produtos.find((p) => p.id === produtoId)
   }, [produtos, produtoId])
 
-  const mesesLocacao = useMemo(() => {
-    if (!dataInicio || !dataFim) return 1
-    const start = new Date(dataInicio)
-    const end = new Date(dataFim)
-    const diffTime = end.getTime() - start.getTime()
-    if (diffTime <= 0) return 0
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    // Estimativa de meses (cada mês ~ 30 dias, mínimo 1 mês)
-    const months = Math.max(1, Math.round(diffDays / 30))
-    return months
+  const diasLocacao = useMemo(() => {
+    if (!dataInicio || !dataFim) return 0
+    return calcularDiasPeriodo(dataInicio, dataFim)
   }, [dataInicio, dataFim])
 
-  const valorTotalCalculado = useMemo(() => {
+  const valorDiarioUnitario = useMemo(() => {
     if (!selectedProduto) return 0
-    const valorMensal = selectedProduto.valor_locacao_mensal || 0
-    return valorMensal * mesesLocacao * quantidade
-  }, [selectedProduto, mesesLocacao, quantidade])
+    return selectedProduto.valor_locacao_diaria ?? selectedProduto.valor_locacao_mensal ?? 0
+  }, [selectedProduto])
+
+  const valorTotalCalculado = useMemo(() => {
+    if (!selectedProduto || diasLocacao <= 0) return 0
+    return valorDiarioUnitario * diasLocacao * quantidade
+  }, [selectedProduto, valorDiarioUnitario, diasLocacao, quantidade])
+
+  // Verificação de disponibilidade em tempo real quando produto, período ou quantidade mudarem
+  useEffect(() => {
+    if (!isModalOpen || !produtoId || !dataInicio || !dataFim) {
+      setDisponibilidadeInfo(null)
+      return
+    }
+
+    if (new Date(dataFim) < new Date(dataInicio)) {
+      setDisponibilidadeInfo(null)
+      return
+    }
+
+    let isMounted = true
+    setIsCheckingDisp(true)
+
+    const timer = setTimeout(() => {
+      disponibilidadeService
+        .verificarDisponibilidadeProduto(produtoId, dataInicio, dataFim, quantidade)
+        .then((res) => {
+          if (isMounted) {
+            setDisponibilidadeInfo(res)
+            setIsCheckingDisp(false)
+          }
+        })
+        .catch((e) => {
+          console.error(e)
+          if (isMounted) setIsCheckingDisp(false)
+        })
+    }, 200)
+
+    return () => {
+      isMounted = false
+      clearTimeout(timer)
+    }
+  }, [isModalOpen, produtoId, dataInicio, dataFim, quantidade])
 
   const openCreateModal = () => {
     setClienteId(clientes[0]?.id || '')
@@ -151,11 +195,11 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
     setQuantidade(1)
 
     const hoje = new Date()
-    const daqui6Meses = new Date()
-    daqui6Meses.setMonth(daqui6Meses.getMonth() + 6)
+    const daqui30Dias = new Date()
+    daqui30Dias.setDate(daqui30Dias.getDate() + 30)
 
     setDataInicio(hoje.toISOString().split('T')[0])
-    setDataFim(daqui6Meses.toISOString().split('T')[0])
+    setDataFim(daqui30Dias.toISOString().split('T')[0])
     setFormaPagamento('debito_em_conta')
     setStatus('ativa')
     setObservacoes('')
@@ -170,8 +214,11 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
     if (quantidade < 1) errs.quantidade = 'Quantidade mínima é 1.'
     if (!dataInicio) errs.dataInicio = 'Data de início é obrigatória.'
     if (!dataFim) errs.dataFim = 'Data de término é obrigatória.'
-    if (dataInicio && dataFim && new Date(dataFim) <= new Date(dataInicio)) {
-      errs.dataFim = 'A data de término deve ser posterior à data de início.'
+    if (dataInicio && dataFim && new Date(dataFim) < new Date(dataInicio)) {
+      errs.dataFim = 'A data de término deve ser igual ou posterior à data de início.'
+    }
+    if (disponibilidadeInfo && !disponibilidadeInfo.temDisponibilidade) {
+      errs.quantidade = `Indisponível no período! Restam apenas ${disponibilidadeInfo.disponivelMinimo} unidade(s) livre(s).`
     }
     setFormErrors(errs)
     return Object.keys(errs).length === 0
@@ -183,18 +230,38 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
 
     setIsSaving(true)
     try {
+      // Re-valida disponibilidade no momento do salvamento para segurança
+      const checagemFinal = await disponibilidadeService.verificarDisponibilidadeProduto(
+        produtoId,
+        dataInicio,
+        dataFim,
+        quantidade,
+      )
+      if (!checagemFinal.temDisponibilidade) {
+        toast({
+          variant: 'destructive',
+          title: 'Estoque insuficiente no período',
+          description: checagemFinal.mensagem,
+        })
+        setFormErrors((prev) => ({
+          ...prev,
+          quantidade: checagemFinal.mensagem,
+        }))
+        setIsSaving(false)
+        return
+      }
+
       await vendasService.create({
         cliente: clienteId,
         produto: produtoId,
         quantidade,
-        data_inicio: new Date(dataInicio).toISOString(),
-        data_fim: new Date(dataFim).toISOString(),
-        valor_total: valorTotalCalculado,
+        data_inicio: `${dataInicio} 00:00:00.000Z`,
+        data_fim: `${dataFim} 00:00:00.000Z`,
         forma_pagamento: formaPagamento,
+        valor_total: valorTotalCalculado,
         status,
         observacoes: observacoes.trim(),
       })
-
       toast({
         title: 'Locação cadastrada!',
         description: 'Contrato de aluguel criado e associado ao seu usuário vendedor com sucesso.',
@@ -370,14 +437,29 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                   </td>
                   <td className="px-4 py-3.5">{v.quantidade} un.</td>
                   <td className="px-4 py-3.5 text-xs text-[#6B6B6B]">
-                    {new Date(v.data_inicio).toLocaleDateString('pt-BR')} até{' '}
-                    {new Date(v.data_fim).toLocaleDateString('pt-BR')}
+                    <div>
+                      {new Date(v.data_inicio).toLocaleDateString('pt-BR')} até{' '}
+                      {new Date(v.data_fim).toLocaleDateString('pt-BR')}
+                    </div>
+                    <div className="text-[10px] text-[#A67C52] font-semibold">
+                      {calcularDiasPeriodo(v.data_inicio, v.data_fim)} diárias
+                    </div>
                   </td>
                   <td className="px-4 py-3.5 text-xs capitalize">
                     {v.forma_pagamento.replace(/_/g, ' ')}
                   </td>
                   <td className="px-4 py-3.5 font-bold text-[#A67C52]">
-                    {formatCurrency(v.valor_total)}
+                    <div>{formatCurrency(v.valor_total)}</div>
+                    {v.expand?.produto && (
+                      <div className="text-[10px] text-[#6B6B6B] font-normal">
+                        {formatCurrency(
+                          v.expand.produto.valor_locacao_diaria ??
+                            v.expand.produto.valor_locacao_mensal ??
+                            0,
+                        )}
+                        /dia
+                      </div>
+                    )}
                   </td>
                   {role === 'ADMIN' && (
                     <td className="px-4 py-3.5 text-xs text-[#6B6B6B]">
@@ -479,7 +561,8 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                           : p.linha
                             ? ` (Linha ${p.linha})`
                             : ''}{' '}
-                        — {formatCurrency(p.valor_locacao_mensal)}/mês
+                        — {formatCurrency(p.valor_locacao_diaria ?? p.valor_locacao_mensal ?? 0)}
+                        /dia
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -536,10 +619,51 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
               </div>
             </div>
 
+            {/* Aviso de Disponibilidade do Período em Tempo Real */}
+            {dataInicio && dataFim && (
+              <div className="rounded-xl p-3 border text-xs transition-all duration-200">
+                {isCheckingDisp ? (
+                  <div className="flex items-center gap-2 text-[#6B6B6B]">
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#A67C52] border-t-transparent" />
+                    <span>Verificando disponibilidade das datas no acervo...</span>
+                  </div>
+                ) : disponibilidadeInfo ? (
+                  <div
+                    className={`flex items-start gap-2.5 ${
+                      disponibilidadeInfo.temDisponibilidade
+                        ? 'text-emerald-800 bg-emerald-50/80 border-emerald-200'
+                        : 'text-red-800 bg-red-50/80 border-red-200'
+                    }`}
+                  >
+                    <CheckCircle
+                      className={`h-4 w-4 shrink-0 mt-0.5 ${
+                        disponibilidadeInfo.temDisponibilidade ? 'text-emerald-600' : 'text-red-500'
+                      }`}
+                    />
+                    <div>
+                      <div className="font-bold">
+                        {disponibilidadeInfo.temDisponibilidade
+                          ? 'Período Disponível'
+                          : 'Estoque Insuficiente no Período'}
+                      </div>
+                      <p className="mt-0.5 text-[11px] leading-snug">
+                        {disponibilidadeInfo.mensagem}
+                      </p>
+                      <p className="text-[10px] opacity-80 mt-1">
+                        Estoque total do móvel: {disponibilidadeInfo.quantidadeEstoque} un. | Máximo
+                        comprometido no período: {disponibilidadeInfo.maxComprometidoNoPeriodo} un.
+                        | Disponível: {disponibilidadeInfo.disponivelMinimo} un.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="formaPgto" className="text-xs font-semibold text-[#2B2B2B]">
-                  Forma de Pagamento Mensal
+                  Forma de Pagamento
                 </Label>
                 <Select
                   value={formaPagamento}
@@ -574,20 +698,21 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
               </div>
             </div>
 
-            {/* Resumo do Cálculo Automático */}
+            {/* Resumo do Cálculo Automático (Diária × Dias × Quantidade) */}
             <div className="rounded-xl bg-[#FAF7F3] border border-[#E5E0DA] p-3.5 flex items-center justify-between">
               <div>
                 <span className="text-xs font-semibold text-[#6B6B6B] block">
-                  Valor Total Calculado ({mesesLocacao} mês/meses × {quantidade} un.)
+                  Valor Total Calculado ({diasLocacao} dia(s) × {quantidade} un.)
                 </span>
                 <span className="text-lg font-extrabold text-[#A67C52]">
                   {formatCurrency(valorTotalCalculado)}
                 </span>
               </div>
               <div className="text-right text-xs text-[#6B6B6B]">
-                {selectedProduto && (
-                  <div>{formatCurrency(selectedProduto.valor_locacao_mensal)}/mês cada</div>
-                )}
+                {selectedProduto && <div>{formatCurrency(valorDiarioUnitario)}/dia cada</div>}
+                <div className="text-[11px] text-[#8C8C8C]">
+                  {diasLocacao > 0 ? `${diasLocacao} diárias contratadas` : 'Defina o período'}
+                </div>
               </div>
             </div>
 
@@ -616,8 +741,11 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
               </Button>
               <Button
                 type="submit"
-                disabled={isSaving}
-                className="bg-[#A67C52] hover:bg-[#8C643F] text-white"
+                disabled={
+                  isSaving ||
+                  (disponibilidadeInfo !== null && !disponibilidadeInfo.temDisponibilidade)
+                }
+                className="bg-[#A67C52] hover:bg-[#8C643F] text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? 'Gravando...' : 'Salvar e Gerar Contrato'}
               </Button>

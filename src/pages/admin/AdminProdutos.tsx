@@ -3,6 +3,7 @@ import { produtosService } from '@/services/produtos'
 import { categoriasService } from '@/services/categorias'
 import { linhasService } from '@/services/linhas'
 import { atributosService } from '@/services/atributos'
+import { disponibilidadeService } from '@/services/disponibilidade'
 import type { ProdutoRecord, CategoriaRecord, LinhaRecord, AtributoRecord } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,8 +53,9 @@ export default function AdminProdutos() {
   const [dimensoes, setDimensoes] = useState('')
   const [descricao, setDescricao] = useState('')
   const [quantidadeEstoque, setQuantidadeEstoque] = useState<number>(1)
-  const [valorLocacaoMensal, setValorLocacaoMensal] = useState<number>(200)
+  const [valorLocacaoDiaria, setValorLocacaoDiaria] = useState<number>(50)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [disponibilidadeHojeMap, setDisponibilidadeHojeMap] = useState<Record<string, number>>({})
 
   // 9 Atributos ATR01..ATR09
   const [atr01, setAtr01] = useState('NONE')
@@ -82,6 +84,12 @@ export default function AdminProdutos() {
       setCategorias(cList)
       setLinhas(lList)
       setAtributos(aList)
+
+      // Carregar mapa de disponibilidade hoje para os produtos
+      disponibilidadeService
+        .getMapaDisponibilidadeHoje(pList)
+        .then(setDisponibilidadeHojeMap)
+        .catch(console.error)
     } catch (err) {
       console.error(err)
       toast({
@@ -182,7 +190,7 @@ export default function AdminProdutos() {
     setDimensoes('')
     setDescricao('')
     setQuantidadeEstoque(1)
-    setValorLocacaoMensal(250)
+    setValorLocacaoDiaria(250)
     setFotoFile(null)
     setAtr01('NONE')
     setAtr02('NONE')
@@ -206,7 +214,7 @@ export default function AdminProdutos() {
     setDimensoes(p.dimensoes || '')
     setDescricao(p.descricao || '')
     setQuantidadeEstoque(p.quantidade_estoque || 0)
-    setValorLocacaoMensal(p.valor_locacao_mensal || 0)
+    setValorLocacaoDiaria(p.valor_locacao_diaria || p.valor_locacao_mensal || 0)
     setFotoFile(null)
     setAtr01(p.atr01 || 'NONE')
     setAtr02(p.atr02 || 'NONE')
@@ -240,8 +248,8 @@ export default function AdminProdutos() {
     if (!nome.trim()) errs.nome = 'O nome do produto é obrigatório.'
     if (!tipoId || tipoId === 'NONE') errs.tipoId = 'A categoria é obrigatória.'
     if (quantidadeEstoque < 0) errs.quantidadeEstoque = 'Quantidade não pode ser negativa.'
-    if (valorLocacaoMensal <= 0)
-      errs.valorLocacaoMensal = 'O valor mensal deve ser superior a zero.'
+    if (valorLocacaoDiaria <= 0)
+      errs.valorLocacaoDiaria = 'O valor diário de locação deve ser superior a zero.'
     setFormErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -260,7 +268,8 @@ export default function AdminProdutos() {
       formData.append('dimensoes', dimensoes.trim())
       formData.append('descricao', descricao.trim())
       formData.append('quantidade_estoque', String(quantidadeEstoque))
-      formData.append('valor_locacao_mensal', String(valorLocacaoMensal))
+      formData.append('valor_locacao_diaria', String(valorLocacaoDiaria))
+      formData.append('valor_locacao_mensal', String(valorLocacaoDiaria))
       if (fotoFile) {
         formData.append('foto', fotoFile)
       }
@@ -594,17 +603,37 @@ export default function AdminProdutos() {
                 <div className="p-4 pt-0">
                   <div className="border-t border-[#E5E0DA] pt-3 flex items-center justify-between">
                     <div>
-                      <div className="text-[11px] text-[#6B6B6B]">Locação Mensal</div>
+                      <div className="text-[11px] text-[#6B6B6B]">Locação Diária</div>
                       <div className="text-base font-extrabold text-[#A67C52]">
-                        {formatCurrency(p.valor_locacao_mensal)}
-                        <span className="text-[10px] font-normal text-[#6B6B6B]">/mês</span>
+                        {formatCurrency(p.valor_locacao_diaria ?? p.valor_locacao_mensal ?? 0)}
+                        <span className="text-[10px] font-normal text-[#6B6B6B]">/dia</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[11px] text-[#6B6B6B]">Estoque</div>
-                      <span className="text-xs font-bold text-[#2B2B2B]">
-                        {p.quantidade_estoque} un.
-                      </span>
+                      <div className="text-[11px] text-[#6B6B6B]">Estoque / Hoje</div>
+                      <div className="flex items-center gap-1.5 justify-end">
+                        <span className="text-xs font-bold text-[#2B2B2B]">
+                          {p.quantidade_estoque} un.
+                        </span>
+                        {(() => {
+                          const dispHoje = disponibilidadeHojeMap[p.id] ?? p.quantidade_estoque
+                          const semEstoque = dispHoje <= 0
+                          return (
+                            <span
+                              title={`Disponível hoje: ${dispHoje} de ${p.quantidade_estoque} un.`}
+                              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                semEstoque
+                                  ? 'bg-red-100 text-red-700'
+                                  : dispHoje < p.quantidade_estoque
+                                    ? 'bg-amber-100 text-amber-700'
+                                    : 'bg-emerald-100 text-emerald-700'
+                              }`}
+                            >
+                              {dispHoje} livre(s)
+                            </span>
+                          )
+                        })()}
+                      </div>
                     </div>
                   </div>
 
@@ -749,25 +778,26 @@ export default function AdminProdutos() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="prodValor" className="text-xs font-semibold text-[#2B2B2B]">
-                  Valor Locação Mensal (R$)
+                  Valor Locação Diária (R$/dia)
                 </Label>
                 <Input
                   id="prodValor"
                   type="number"
                   min="1"
                   step="1"
-                  value={valorLocacaoMensal}
-                  onChange={(e) => setValorLocacaoMensal(Number(e.target.value))}
+                  value={valorLocacaoDiaria}
+                  onChange={(e) => setValorLocacaoDiaria(Number(e.target.value))}
+                  placeholder="Ex: 50"
                   className="bg-[#FBF9F6] border-[#E5E0DA]"
                 />
-                {formErrors.valorLocacaoMensal && (
-                  <p className="text-xs text-red-600">{formErrors.valorLocacaoMensal}</p>
+                {formErrors.valorLocacaoDiaria && (
+                  <p className="text-xs text-red-600">{formErrors.valorLocacaoDiaria}</p>
                 )}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="prodEstoque" className="text-xs font-semibold text-[#2B2B2B]">
-                  Estoque Disponível
+                  Estoque Físico Total
                 </Label>
                 <Input
                   id="prodEstoque"

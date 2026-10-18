@@ -41,7 +41,8 @@ export interface ProdutoRecord extends RecordModel {
   dimensoes?: string
   descricao?: string
   quantidade_estoque: number
-  valor_locacao_mensal: number
+  valor_locacao_diaria: number
+  valor_locacao_mensal?: number
   foto?: string
   atr01?: string // relation -> atributos
   atr02?: string
@@ -109,6 +110,8 @@ export interface OrcamentoRecord extends RecordModel {
   observacoes?: string
   vendedor: string // relation -> users
   data_aprovacao?: string
+  data_inicio?: string
+  data_fim?: string
   expand?: {
     cliente?: ClienteRecord
     vendedor?: UserRecord
@@ -122,5 +125,6 @@ export interface OrcamentoItemRecord extends RecordModel {
   quantidade: number
   expand?: {
     produto?: ProdutoRecord
+    orcamento?: OrcamentoRecord
   }
 }

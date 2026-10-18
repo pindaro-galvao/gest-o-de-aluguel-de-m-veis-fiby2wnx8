@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { vendasService } from '@/services/vendas'
 import { clientesService } from '@/services/clientes'
+import { calcularDiasPeriodo } from '@/services/disponibilidade'
 import type { VendaRecord, ClienteRecord } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -49,19 +50,21 @@ export default function ClienteRelatorio() {
     load()
   }, [user])
 
-  const totalMensal = useMemo(() => {
+  const totalDiario = useMemo(() => {
     return vendas
       .filter((v) => v.status === 'ativa')
       .reduce((acc, curr) => {
-        const pMensal = curr.expand?.produto?.valor_locacao_mensal || 0
-        return acc + pMensal * curr.quantidade
+        const valorUnit =
+          curr.expand?.produto?.valor_locacao_diaria ??
+          curr.expand?.produto?.valor_locacao_mensal ??
+          0
+        return acc + valorUnit * curr.quantidade
       }, 0)
   }, [vendas])
 
   const totalContratos = useMemo(() => {
-    return vendas.reduce((acc, curr) => acc + (curr.valor_total || 0), 0)
+    return vendas.reduce((acc, curr) => acc + curr.valor_total, 0)
   }, [vendas])
-
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
   }
@@ -92,7 +95,8 @@ export default function ClienteRelatorio() {
               Relatório de Contratos & Locações
             </h2>
             <p className="text-sm text-[#6B6B6B] mt-0.5">
-              Acompanhe seus móveis TIDELLI alugados, prazos de vigência e faturamento mensal.
+              Acompanhe seus móveis TIDELLI alugados, prazos de vigência e valores contratados por
+              período.
             </p>
           </div>
 
@@ -123,14 +127,14 @@ export default function ClienteRelatorio() {
 
         <div className="lp-card rounded-xl p-5">
           <span className="text-xs font-semibold text-[#6B6B6B] uppercase">
-            Mensalidade Atual Total
+            Diária Total Vigente
           </span>
           <div className="mt-3 text-2xl font-extrabold text-[#A67C52]">
-            {formatCurrency(totalMensal)}
-            <span className="text-xs font-normal text-[#6B6B6B]">/mês</span>
+            {formatCurrency(totalDiario)}
+            <span className="text-xs font-normal text-[#6B6B6B]">/dia</span>
           </div>
           <span className="text-xs text-[#6B6B6B] mt-1 block">
-            Soma dos aluguéis mensais vigentes
+            Soma das diárias de móveis contratados
           </span>
         </div>
 
@@ -262,17 +266,25 @@ export default function ClienteRelatorio() {
                       {new Date(v.data_inicio).toLocaleDateString('pt-BR')} a{' '}
                       {new Date(v.data_fim).toLocaleDateString('pt-BR')}
                     </span>
+                    <span className="text-[10px] text-[#A67C52] font-semibold block">
+                      {calcularDiasPeriodo(v.data_inicio, v.data_fim)} diárias
+                    </span>
                   </div>
 
                   <div>
-                    <span className="text-[#6B6B6B] block">Forma de Cobrança:</span>
-                    <span className="font-semibold text-[#2B2B2B] capitalize">
-                      {v.forma_pagamento.replace(/_/g, ' ')}
+                    <span className="text-[#6B6B6B] block">Diária Unitária:</span>
+                    <span className="font-semibold text-[#2B2B2B]">
+                      {formatCurrency(
+                        v.expand?.produto?.valor_locacao_diaria ??
+                          v.expand?.produto?.valor_locacao_mensal ??
+                          0,
+                      )}
+                      /dia
                     </span>
                   </div>
 
                   <div className="text-right min-w-[120px]">
-                    <span className="text-[#6B6B6B] block">Valor Contratado:</span>
+                    <span className="text-[#6B6B6B] block">Valor Total:</span>
                     <span className="text-base font-extrabold text-[#A67C52]">
                       {formatCurrency(v.valor_total)}
                     </span>

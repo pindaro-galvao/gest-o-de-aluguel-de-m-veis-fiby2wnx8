@@ -2,6 +2,11 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { orcamentosService } from '@/services/orcamentos'
 import { clientesService } from '@/services/clientes'
 import { produtosService } from '@/services/produtos'
+import {
+  disponibilidadeService,
+  calcularDiasPeriodo,
+  type DisponibilidadeResultado,
+} from '@/services/disponibilidade'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRealtime } from '@/hooks/use-realtime'
 import type {
@@ -65,10 +70,14 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
 
   // Form de Novo Orçamento
   const [clienteId, setClienteId] = useState('')
+  const [dataInicio, setDataInicio] = useState('')
+  const [dataFim, setDataFim] = useState('')
   const [validade, setValidade] = useState('')
   const [observacoes, setObservacoes] = useState('')
   const [itens, setItens] = useState<Array<{ produtoId: string; quantidade: number }>>([])
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [itensDisp, setItensDisp] = useState<Record<string, DisponibilidadeResultado | null>>({})
+  const [isCheckingDisp, setIsCheckingDisp] = useState(false)
 
   // Modal Ver Detalhe / Itens
   const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoRecord | null>(null)
@@ -111,8 +120,14 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
   const openCreateModal = () => {
     setClienteId(clientes[0]?.id || '')
     const hoje = new Date()
-    hoje.setDate(hoje.getDate() + 30)
-    setValidade(hoje.toISOString().split('T')[0])
+    const daqui30Dias = new Date()
+    daqui30Dias.setDate(daqui30Dias.getDate() + 30)
+    const daqui7Dias = new Date()
+    daqui7Dias.setDate(daqui7Dias.getDate() + 7)
+
+    setDataInicio(hoje.toISOString().split('T')[0])
+    setDataFim(daqui7Dias.toISOString().split('T')[0])
+    setValidade(daqui30Dias.toISOString().split('T')[0])
     setObservacoes('')
 
     if (produtos.length > 0) {
@@ -143,19 +158,82 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
     })
   }
 
+  const diasPeriodo = useMemo(() => {
+    if (!dataInicio || !dataFim) return 1
+    return Math.max(1, calcularDiasPeriodo(dataInicio, dataFim))
+  }, [dataInicio, dataFim])
+
   const totalCalculado = useMemo(() => {
     return itens.reduce((acc, curr) => {
       const p = produtos.find((prod) => prod.id === curr.produtoId)
-      const preco = p?.valor_locacao_mensal || 0
-      return acc + preco * curr.quantidade
+      const diaria = p?.valor_locacao_diaria ?? p?.valor_locacao_mensal ?? 0
+      return acc + diaria * curr.quantidade * diasPeriodo
     }, 0)
-  }, [itens, produtos])
+  }, [itens, produtos, diasPeriodo])
+
+  // Verificação de disponibilidade dos itens no período informado
+  useEffect(() => {
+    if (!isModalOpen || !dataInicio || !dataFim || itens.length === 0) {
+      setItensDisp({})
+      return
+    }
+
+    if (new Date(dataFim) < new Date(dataInicio)) {
+      setItensDisp({})
+      return
+    }
+
+    let isMounted = true
+    setIsCheckingDisp(true)
+
+    const timer = setTimeout(async () => {
+      const resultados: Record<string, DisponibilidadeResultado | null> = {}
+      for (const item of itens) {
+        if (!item.produtoId) continue
+        try {
+          const res = await disponibilidadeService.verificarDisponibilidadeProduto(
+            item.produtoId,
+            dataInicio,
+            dataFim,
+            item.quantidade,
+          )
+          resultados[item.produtoId] = res
+        } catch {
+          resultados[item.produtoId] = null
+        }
+      }
+      if (isMounted) {
+        setItensDisp(resultados)
+        setIsCheckingDisp(false)
+      }
+    }, 250)
+
+    return () => {
+      isMounted = false
+      clearTimeout(timer)
+    }
+  }, [isModalOpen, dataInicio, dataFim, itens])
+
+  const todosItensDisponiveis = useMemo(() => {
+    if (!dataInicio || !dataFim) return true
+    for (const item of itens) {
+      const info = itensDisp[item.produtoId]
+      if (info && !info.temDisponibilidade) return false
+    }
+    return true
+  }, [itens, itensDisp, dataInicio, dataFim])
 
   const validate = () => {
     const errs: Record<string, string> = {}
     if (!clienteId) errs.clienteId = 'Selecione um cliente.'
     if (!validade) errs.validade = 'Validade é obrigatória.'
+    if (dataInicio && dataFim && new Date(dataFim) < new Date(dataInicio)) {
+      errs.dataFim = 'A data de término deve ser igual ou posterior à data de início.'
+    }
     if (itens.length === 0) errs.itens = 'Adicione ao menos um móvel no orçamento.'
+    if (!todosItensDisponiveis) {
+      errs.itens = 'Alguns produtos não possuem disponibilidade suficiente no período selecionado.'
+    }
     setFormErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -171,6 +249,8 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
           cliente: clienteId,
           valor_total: totalCalculado,
           validade: new Date(validade).toISOString(),
+          data_inicio: dataInicio ? `${dataInicio} 00:00:00.000Z` : undefined,
+          data_fim: dataFim ? `${dataFim} 00:00:00.000Z` : undefined,
           status: 'enviado',
           observacoes: observacoes.trim(),
         },
@@ -398,31 +478,59 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
               Gerar Novo Orçamento de Móveis
             </DialogTitle>
             <DialogDescription className="text-xs text-[#6B6B6B]">
-              Selecione o cliente e adicione os móveis TIDELLI para o cálculo mensal.
+              Selecione o cliente, o período desejado e adicione os móveis TIDELLI para cálculo
+              diário.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSave} className="space-y-4 pt-2">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="orcCliente" className="text-xs font-semibold text-[#2B2B2B]">
+                Cliente
+              </Label>
+              <Select value={clienteId} onValueChange={setClienteId}>
+                <SelectTrigger className="bg-[#FBF9F6] border-[#E5E0DA]">
+                  <SelectValue placeholder="Selecione o Cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientes.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formErrors.clienteId && (
+                <p className="text-xs text-red-600">{formErrors.clienteId}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="orcCliente" className="text-xs font-semibold text-[#2B2B2B]">
-                  Cliente
+                <Label htmlFor="dataInicioOrc" className="text-xs font-semibold text-[#2B2B2B]">
+                  Início da Locação
                 </Label>
-                <Select value={clienteId} onValueChange={setClienteId}>
-                  <SelectTrigger className="bg-[#FBF9F6] border-[#E5E0DA]">
-                    <SelectValue placeholder="Selecione o Cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formErrors.clienteId && (
-                  <p className="text-xs text-red-600">{formErrors.clienteId}</p>
-                )}
+                <Input
+                  id="dataInicioOrc"
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                  className="bg-[#FBF9F6] border-[#E5E0DA]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="dataFimOrc" className="text-xs font-semibold text-[#2B2B2B]">
+                  Término da Locação
+                </Label>
+                <Input
+                  id="dataFimOrc"
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.target.value)}
+                  className="bg-[#FBF9F6] border-[#E5E0DA]"
+                />
+                {formErrors.dataFim && <p className="text-xs text-red-600">{formErrors.dataFim}</p>}
               </div>
 
               <div className="space-y-1.5">
@@ -438,6 +546,35 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                 />
               </div>
             </div>
+
+            {/* Aviso geral de verificação de disponibilidade no período */}
+            {dataInicio && dataFim && (
+              <div className="rounded-lg p-2.5 border text-xs bg-[#FAF7F3] border-[#E5E0DA]">
+                {isCheckingDisp ? (
+                  <div className="flex items-center gap-2 text-[#6B6B6B]">
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#A67C52] border-t-transparent" />
+                    <span>
+                      Verificando saldo e disponibilidade no período ({diasPeriodo} dia(s))...
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#6B6B6B]">
+                      Período de locação: <strong>{diasPeriodo} dia(s)</strong>
+                    </span>
+                    {!todosItensDisponiveis ? (
+                      <span className="font-semibold text-red-600">
+                        Atenção: móveis selecionados excedem o estoque no período!
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-emerald-700">
+                        Todos os móveis disponíveis no período
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Lista de Itens do Orçamento */}
             <div className="space-y-2 pt-2 border-t border-[#F1ECE6]">
@@ -459,65 +596,92 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
 
               {formErrors.itens && <p className="text-xs text-red-600">{formErrors.itens}</p>}
 
-              <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                 {itens.map((item, idx) => {
                   const prod = produtos.find((p) => p.id === item.produtoId)
-                  const subtotal = (prod?.valor_locacao_mensal || 0) * item.quantidade
+                  const diaria = prod?.valor_locacao_diaria ?? prod?.valor_locacao_mensal ?? 0
+                  const subtotal = diaria * item.quantidade * diasPeriodo
+                  const disp = itensDisp[item.produtoId]
 
                   return (
                     <div
                       key={idx}
-                      className="flex items-center gap-2 rounded-lg border border-[#E5E0DA] bg-[#FAF7F3] p-2.5"
+                      className="rounded-lg border border-[#E5E0DA] bg-[#FAF7F3] p-2.5 space-y-1.5"
                     >
-                      <div className="flex-1">
-                        <Select
-                          value={item.produtoId}
-                          onValueChange={(val) => updateItem(idx, 'produtoId', val)}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <Select
+                            value={item.produtoId}
+                            onValueChange={(val) => updateItem(idx, 'produtoId', val)}
+                          >
+                            <SelectTrigger className="bg-white border-[#E5E0DA] h-9 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {produtos.map((p) => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.codigo ? `${p.codigo} — ` : ''}
+                                  {p.nome}
+                                  {p.expand?.linha?.nome
+                                    ? ` (Linha ${p.expand.linha.nome})`
+                                    : p.linha
+                                      ? ` (Linha ${p.linha})`
+                                      : ''}{' '}
+                                  (
+                                  {formatCurrency(
+                                    p.valor_locacao_diaria ?? p.valor_locacao_mensal ?? 0,
+                                  )}
+                                  /dia)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="w-20">
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantidade}
+                            onChange={(e) => updateItem(idx, 'quantidade', e.target.value)}
+                            className="bg-white border-[#E5E0DA] h-9 text-xs text-center"
+                          />
+                        </div>
+
+                        <div className="w-28 text-right font-bold text-xs text-[#A67C52]">
+                          <div>{formatCurrency(subtotal)}</div>
+                          <div className="text-[10px] text-[#6B6B6B] font-normal">
+                            {formatCurrency(diaria)}/dia
+                          </div>
+                        </div>
+
+                        {itens.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItem(idx)}
+                            className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Aviso de saldo deste item no período */}
+                      {disp && (
+                        <div
+                          className={`text-[11px] px-2 py-1 rounded flex items-center justify-between ${
+                            disp.temDisponibilidade
+                              ? 'bg-emerald-50 text-emerald-800'
+                              : 'bg-red-50 text-red-800 font-semibold'
+                          }`}
                         >
-                          <SelectTrigger className="bg-white border-[#E5E0DA] h-9 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {produtos.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.codigo ? `${p.codigo} — ` : ''}
-                                {p.nome}
-                                {p.expand?.linha?.nome
-                                  ? ` (Linha ${p.expand.linha.nome})`
-                                  : p.linha
-                                    ? ` (Linha ${p.linha})`
-                                    : ''}{' '}
-                                ({formatCurrency(p.valor_locacao_mensal)}/mês)
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="w-20">
-                        <Input
-                          type="number"
-                          min="1"
-                          value={item.quantidade}
-                          onChange={(e) => updateItem(idx, 'quantidade', e.target.value)}
-                          className="bg-white border-[#E5E0DA] h-9 text-xs text-center"
-                        />
-                      </div>
-
-                      <div className="w-24 text-right font-bold text-xs text-[#A67C52]">
-                        {formatCurrency(subtotal)}
-                      </div>
-
-                      {itens.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeItem(idx)}
-                          className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                          <span>{disp.mensagem}</span>
+                          <span className="text-[10px] opacity-75">
+                            {disp.disponivelMinimo} de {disp.quantidadeEstoque} livres
+                          </span>
+                        </div>
                       )}
                     </div>
                   )
@@ -527,9 +691,14 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
 
             {/* Total */}
             <div className="rounded-xl bg-[#F7F5F2] border border-[#E5E0DA] p-3 flex justify-between items-center">
-              <span className="text-xs font-semibold text-[#6B6B6B]">
-                Total Estimado de Locação Mensal:
-              </span>
+              <div>
+                <span className="text-xs font-semibold text-[#6B6B6B] block">
+                  Total Estimado da Locação ({diasPeriodo} dia(s)):
+                </span>
+                <span className="text-[11px] text-[#8C8C8C]">
+                  Cálculo: soma de (diária individual × dias × quantidade)
+                </span>
+              </div>
               <span className="text-xl font-extrabold text-[#A67C52]">
                 {formatCurrency(totalCalculado)}
               </span>
@@ -560,8 +729,8 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
               </Button>
               <Button
                 type="submit"
-                disabled={isSaving}
-                className="bg-[#A67C52] hover:bg-[#8C643F] text-white"
+                disabled={isSaving || !todosItensDisponiveis}
+                className="bg-[#A67C52] hover:bg-[#8C643F] text-white disabled:opacity-50"
               >
                 {isSaving ? 'Gerando...' : 'Enviar Orçamento'}
               </Button>
@@ -654,12 +823,19 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                         )}
                         <div className="text-[11px] text-[#6B6B6B] mt-0.5">
                           Qtd: {item.quantidade} •{' '}
-                          {formatCurrency(item.expand?.produto?.valor_locacao_mensal || 0)}/mês cada
+                          {formatCurrency(
+                            item.expand?.produto?.valor_locacao_diaria ??
+                              item.expand?.produto?.valor_locacao_mensal ??
+                              0,
+                          )}
+                          /dia cada
                         </div>
                       </div>
                       <div className="font-bold text-[#A67C52]">
                         {formatCurrency(
-                          (item.expand?.produto?.valor_locacao_mensal || 0) * item.quantidade,
+                          (item.expand?.produto?.valor_locacao_diaria ??
+                            item.expand?.produto?.valor_locacao_mensal ??
+                            0) * item.quantidade,
                         )}
                       </div>
                     </div>

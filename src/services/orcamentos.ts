@@ -30,6 +30,8 @@ export const orcamentosService = {
       validade: string
       status: string
       observacoes?: string
+      data_inicio?: string
+      data_fim?: string
     },
     itens: Array<{ produto: string; quantidade: number }>,
   ) {

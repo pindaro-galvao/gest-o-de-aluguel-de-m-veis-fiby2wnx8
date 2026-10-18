@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T17:28:52.808Z",
+  "generatedAt": "2026-10-18T17:46:37.211Z",
   "collections": [
     {
       "name": "users",
@@ -206,6 +206,12 @@
           "required": false,
           "system": false,
           "collectionRef": "atributos"
+        },
+        {
+          "name": "valor_locacao_diaria",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -444,6 +450,18 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "data_inicio",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_fim",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

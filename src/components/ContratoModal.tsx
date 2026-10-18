@@ -1,14 +1,9 @@
 import React from 'react'
 import type { VendaRecord, AtributoRecord } from '@/types/database'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
+import { calcularDiasPeriodo } from '@/services/disponibilidade'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Printer, Download, X, Building2, ShieldCheck, FileText } from 'lucide-react'
+import { Printer, Building2, ShieldCheck, FileText } from 'lucide-react'
 
 interface ContratoModalProps {
   venda: VendaRecord | null
@@ -54,8 +49,10 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
     return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('pt-BR')
   }
 
-  const valorMensalUnitario = venda.expand?.produto?.valor_locacao_mensal || 0
-  const valorTotalMensalItens = valorMensalUnitario * (venda.quantidade || 1)
+  const valorDiarioUnitario =
+    venda.expand?.produto?.valor_locacao_diaria ?? venda.expand?.produto?.valor_locacao_mensal ?? 0
+  const diasPeriodo = Math.max(1, calcularDiasPeriodo(venda.data_inicio, venda.data_fim))
+  const valorTotalCalculado = valorDiarioUnitario * diasPeriodo * (venda.quantidade || 1)
 
   const handlePrint = () => {
     window.print()
@@ -185,8 +182,9 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
                   <th className="px-3 py-2.5">Descrição do Produto</th>
                   <th className="px-3 py-2.5">Linha</th>
                   <th className="px-3 py-2.5 text-center">Qtd</th>
-                  <th className="px-3 py-2.5 text-right">Valor Mensal Unit.</th>
-                  <th className="px-3 py-2.5 text-right">Subtotal Mensal</th>
+                  <th className="px-3 py-2.5 text-right">Diária Unit.</th>
+                  <th className="px-3 py-2.5 text-center">Período (Dias)</th>
+                  <th className="px-3 py-2.5 text-right">Valor Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E0DA]">
@@ -225,11 +223,14 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
                   <td className="px-3 py-3 text-center font-semibold align-top">
                     {venda.quantidade} un.
                   </td>
-                  <td className="px-3 py-3 text-right align-top">
-                    {formatCurrency(valorMensalUnitario)}
+                  <td className="px-3 py-3 text-right align-top font-medium">
+                    {formatCurrency(valorDiarioUnitario)}/dia
+                  </td>
+                  <td className="px-3 py-3 text-center align-top font-semibold text-[#2B2B2B]">
+                    {diasPeriodo} dia(s)
                   </td>
                   <td className="px-3 py-3 text-right font-bold text-[#A67C52] align-top">
-                    {formatCurrency(valorTotalMensalItens)}
+                    {formatCurrency(venda.valor_total || valorTotalCalculado)}
                   </td>
                 </tr>
               </tbody>
@@ -243,21 +244,26 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
               <div>
-                <span className="text-[#6B6B6B] block">Período de Vigência:</span>
+                <span className="text-[#6B6B6B] block">
+                  Período de Vigência (Retirada e Devolução):
+                </span>
                 <span className="font-bold text-[#2B2B2B] text-sm">
-                  {formatDate(venda.data_inicio)} até {formatDate(venda.data_fim)}
+                  {formatDate(venda.data_inicio)} até {formatDate(venda.data_fim)} ({diasPeriodo}{' '}
+                  diárias)
                 </span>
               </div>
               <div>
-                <span className="text-[#6B6B6B] block">Forma de Pagamento Mensal:</span>
+                <span className="text-[#6B6B6B] block">Forma de Pagamento:</span>
                 <span className="font-bold text-[#2B2B2B] text-sm capitalize">
                   {venda.forma_pagamento ? venda.forma_pagamento.replace(/_/g, ' ') : 'Boleto'}
                 </span>
               </div>
               <div>
-                <span className="text-[#6B6B6B] block">Valor Total do Período Contratado:</span>
+                <span className="text-[#6B6B6B] block">
+                  Valor Total do Período (Diária × Dias):
+                </span>
                 <span className="font-extrabold text-[#A67C52] text-base">
-                  {formatCurrency(venda.valor_total)}
+                  {formatCurrency(venda.valor_total || valorTotalCalculado)}
                 </span>
               </div>
             </div>
@@ -287,9 +293,9 @@ export function ContratoModal({ venda, open, onOpenChange }: ContratoModalProps)
                 quaisquer danos, avarias extraordinárias ou extravio decorrentes de dolo ou culpa.
               </li>
               <li>
-                <strong>Pagamento Mensal:</strong> O LOCATÁRIO obriga-se ao pagamento pontual das
-                mensalidades conforme a forma e vencimento ajustados. O atraso acarretará multa
-                moratória e juros legais vigentes.
+                <strong>Pagamento da Locação:</strong> O LOCATÁRIO obriga-se ao pagamento pontual
+                das parcelas ou valores acordados para o período contratado conforme a forma e
+                vencimento ajustados. O atraso acarretará multa moratória e juros legais vigentes.
               </li>
               <li>
                 <strong>Devolução e Vistoria:</strong> Ao término da vigência deste contrato, ou em
