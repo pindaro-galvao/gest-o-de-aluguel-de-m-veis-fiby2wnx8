@@ -15,13 +15,19 @@ import {
   Clock,
   Download,
   AlertCircle,
+  Printer,
 } from 'lucide-react'
+import { ContratoModal } from '@/components/ContratoModal'
 
 export default function ClienteRelatorio() {
   const { user } = useAuth()
   const [vendas, setVendas] = useState<VendaRecord[]>([])
   const [cliente, setCliente] = useState<ClienteRecord | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Modal Visualizar / Imprimir Contrato
+  const [selectedVendaContrato, setSelectedVendaContrato] = useState<VendaRecord | null>(null)
+  const [isContratoOpen, setIsContratoOpen] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -228,12 +234,37 @@ export default function ClienteRelatorio() {
                       {formatCurrency(v.valor_total)}
                     </span>
                   </div>
+
+                  {/* Botão Gerar Contrato */}
+                  {(v.status === 'ativa' || v.status === 'encerrada') && (
+                    <div className="flex items-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedVendaContrato(v)
+                          setIsContratoOpen(true)
+                        }}
+                        className="h-8 gap-1 text-xs border-[#A67C52] text-[#A67C52] hover:bg-[#A67C52] hover:text-white font-semibold transition-colors shadow-2xs"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        <span>Gerar Contrato</span>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Modal de Contrato Imprimível */}
+      <ContratoModal
+        venda={selectedVendaContrato}
+        open={isContratoOpen}
+        onOpenChange={setIsContratoOpen}
+      />
 
       {/* Informações de Suporte e Manutenção */}
       <div className="rounded-xl border border-[#E5E0DA] bg-white p-5 flex flex-col sm:flex-row items-center justify-between gap-4">

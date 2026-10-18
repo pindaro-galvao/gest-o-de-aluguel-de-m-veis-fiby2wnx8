@@ -1,9 +1,16 @@
 import React, { useEffect, useState, useMemo } from 'react'
+import pb from '@/lib/pocketbase/client'
 import { vendasService } from '@/services/vendas'
 import { orcamentosService } from '@/services/orcamentos'
 import { produtosService } from '@/services/produtos'
 import { clientesService } from '@/services/clientes'
-import type { VendaRecord, OrcamentoRecord, ProdutoRecord, ClienteRecord } from '@/types/database'
+import type {
+  VendaRecord,
+  OrcamentoRecord,
+  OrcamentoItemRecord,
+  ProdutoRecord,
+  ClienteRecord,
+} from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -28,11 +35,13 @@ import {
 export default function AdminRelatorios() {
   const [vendas, setVendas] = useState<VendaRecord[]>([])
   const [orcamentos, setOrcamentos] = useState<OrcamentoRecord[]>([])
+  const [orcamentoItens, setOrcamentoItens] = useState<OrcamentoItemRecord[]>([])
   const [clientes, setClientes] = useState<ClienteRecord[]>([])
   const [produtos, setProdutos] = useState<ProdutoRecord[]>([])
   const [loading, setLoading] = useState(true)
 
   const [periodoFilter, setPeriodoFilter] = useState('TODOS') // 'TODOS' | '30' | '90' | '180' | '365'
+  const [linhaFilter, setLinhaFilter] = useState('TODAS') // 'TODAS' | nome da linha
 
   useEffect(() => {
     const load = async () => {
@@ -47,6 +56,16 @@ export default function AdminRelatorios() {
         setOrcamentos(o)
         setClientes(c)
         setProdutos(p)
+
+        // Carregar itens de orçamentos para cruzar com a linha dos produtos
+        try {
+          const itens = await pb.collection('orcamento_itens').getFullList<OrcamentoItemRecord>({
+            expand: 'produto',
+          })
+          setOrcamentoItens(itens)
+        } catch (itensErr) {
+          console.error('Erro ao buscar orcamento_itens:', itensErr)
+        }
       } catch (err) {
         console.error(err)
       } finally {
@@ -56,30 +75,83 @@ export default function AdminRelatorios() {
     load()
   }, [])
 
-  // Filtragem por Período
+  // Lista de Linhas distintas cadastradas em produtos
+  const linhasDisponiveis = useMemo(() => {
+    const setLinhas = new Set<string>()
+    produtos.forEach((p) => {
+      if (p.linha && p.linha.trim()) {
+        setLinhas.add(p.linha.trim())
+      }
+    })
+    return Array.from(setLinhas).sort()
+  }, [produtos])
+
+  // Mapeamento de quais orçamentos possuem itens de cada linha
+  const orcamentosLinhasMap = useMemo(() => {
+    const map = new Map<string, Set<string>>() // orcamentoId -> Set of linha names
+    orcamentoItens.forEach((item) => {
+      const linha = item.expand?.produto?.linha?.trim()
+      if (linha && item.orcamento) {
+        if (!map.has(item.orcamento)) {
+          map.set(item.orcamento, new Set())
+        }
+        map.get(item.orcamento)!.add(linha)
+      }
+    })
+    return map
+  }, [orcamentoItens])
+
+  // Filtragem de Vendas combinando Período e Linha
   const filteredVendas = useMemo(() => {
-    if (periodoFilter === 'TODOS') return vendas
-    const dias = parseInt(periodoFilter, 10)
-    const limite = new Date()
-    limite.setDate(limite.getDate() - dias)
-
     return vendas.filter((v) => {
-      const createdDate = new Date(v.created || v.data_inicio)
-      return createdDate >= limite
-    })
-  }, [vendas, periodoFilter])
+      // Filtro de Linha
+      if (linhaFilter !== 'TODAS') {
+        const prodLinha = v.expand?.produto?.linha?.trim()
+        if (!prodLinha || prodLinha !== linhaFilter) {
+          return false
+        }
+      }
 
+      // Filtro de Período
+      if (periodoFilter !== 'TODOS') {
+        const dias = parseInt(periodoFilter, 10)
+        const limite = new Date()
+        limite.setDate(limite.getDate() - dias)
+        const createdDate = new Date(v.created || v.data_inicio)
+        if (createdDate < limite) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [vendas, linhaFilter, periodoFilter])
+
+  // Filtragem de Orçamentos combinando Período e Linha
   const filteredOrcamentos = useMemo(() => {
-    if (periodoFilter === 'TODOS') return orcamentos
-    const dias = parseInt(periodoFilter, 10)
-    const limite = new Date()
-    limite.setDate(limite.getDate() - dias)
-
     return orcamentos.filter((o) => {
-      const createdDate = new Date(o.created)
-      return createdDate >= limite
+      // Filtro de Linha
+      if (linhaFilter !== 'TODAS') {
+        const linhasDoOrcamento = orcamentosLinhasMap.get(o.id)
+        if (!linhasDoOrcamento || !linhasDoOrcamento.has(linhaFilter)) {
+          return false
+        }
+      }
+
+      // Filtro de Período
+      if (periodoFilter !== 'TODOS') {
+        const dias = parseInt(periodoFilter, 10)
+        const limite = new Date()
+        limite.setDate(limite.getDate() - dias)
+        const createdDate = new Date(o.created)
+        if (createdDate < limite) {
+          return false
+        }
+      }
+
+      return true
     })
-  }, [orcamentos, periodoFilter])
+  }, [orcamentos, orcamentosLinhasMap, linhaFilter, periodoFilter])
 
   // Cálculos consolidados
   const faturamentoTotal = useMemo(() => {
@@ -121,8 +193,26 @@ export default function AdminRelatorios() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Filtro por Linha TIDELLI */}
           <div className="w-48">
+            <Select value={linhaFilter} onValueChange={setLinhaFilter}>
+              <SelectTrigger className="bg-white border-[#E5E0DA]">
+                <SelectValue placeholder="Filtrar por Linha" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TODAS">Todas as linhas</SelectItem>
+                {linhasDisponiveis.map((linha) => (
+                  <SelectItem key={linha} value={linha}>
+                    Linha {linha}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Filtro por Período */}
+          <div className="w-44">
             <Select value={periodoFilter} onValueChange={setPeriodoFilter}>
               <SelectTrigger className="bg-white border-[#E5E0DA]">
                 <SelectValue placeholder="Período" />
@@ -156,7 +246,8 @@ export default function AdminRelatorios() {
             {formatCurrency(faturamentoTotal)}
           </div>
           <span className="text-xs text-[#6B6B6B] mt-1 block">
-            {filteredVendas.length} contratos no período
+            {filteredVendas.length} contrato(s){' '}
+            {linhaFilter !== 'TODAS' ? `(Linha ${linhaFilter})` : 'no período'}
           </span>
         </div>
 
@@ -176,7 +267,8 @@ export default function AdminRelatorios() {
             {formatCurrency(totalOrcado)}
           </div>
           <span className="text-xs text-[#6B6B6B] mt-1 block">
-            {filteredOrcamentos.length} cotações emitidas
+            {filteredOrcamentos.length} cotação(ões){' '}
+            {linhaFilter !== 'TODAS' ? `(Linha ${linhaFilter})` : 'emitidas'}
           </span>
         </div>
 

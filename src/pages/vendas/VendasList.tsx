@@ -44,7 +44,10 @@ import {
   Building,
   CheckCircle,
   FileCheck,
+  FileText,
+  Printer,
 } from 'lucide-react'
+import { ContratoModal } from '@/components/ContratoModal'
 
 interface VendasPageProps {
   isAdminView?: boolean
@@ -62,6 +65,10 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('TODOS')
   const [vendedorFilter, setVendedorFilter] = useState('TODOS')
+
+  // Modal Visualizar / Imprimir Contrato
+  const [selectedVendaContrato, setSelectedVendaContrato] = useState<VendaRecord | null>(null)
+  const [isContratoOpen, setIsContratoOpen] = useState(false)
 
   // Modal Nova Venda
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -330,7 +337,8 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                 <th className="px-4 py-3">Pagamento</th>
                 <th className="px-4 py-3">Valor Total</th>
                 {role === 'ADMIN' && <th className="px-4 py-3">Vendedor</th>}
-                <th className="px-4 py-3 rounded-r-lg">Status</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right rounded-r-lg">Contrato</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F1ECE6]">
@@ -379,6 +387,26 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                     >
                       {v.status}
                     </Badge>
+                  </td>
+                  <td className="px-4 py-3.5 text-right">
+                    {/* Botão Gerar Contrato visível quando aprovado/ativo (status ativa ou encerrada) */}
+                    {v.status === 'ativa' || v.status === 'encerrada' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedVendaContrato(v)
+                          setIsContratoOpen(true)
+                        }}
+                        className="h-8 gap-1.5 text-xs border-[#E5E0DA] text-[#A67C52] hover:bg-[#FAF7F3] hover:text-[#8C643F] shadow-2xs font-semibold"
+                        title="Visualizar e Imprimir Contrato em PDF"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        <span>Imprimir Contrato</span>
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-[#A0A0A0] italic">Cancelado</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -582,6 +610,13 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Impressão de Contrato */}
+      <ContratoModal
+        venda={selectedVendaContrato}
+        open={isContratoOpen}
+        onOpenChange={setIsContratoOpen}
+      />
     </div>
   )
 }
