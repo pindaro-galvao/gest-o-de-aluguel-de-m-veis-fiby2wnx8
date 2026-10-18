@@ -30,14 +30,22 @@ export const vendasService = {
     status: string
     observacoes?: string
   }) {
+    const payload = {
+      ...data,
+      observacoes: data.observacoes ? data.observacoes.trim().toUpperCase() : '',
+    }
     // Vendedor é gravado automaticamente pelo backend hook, mas podemos passar seguro
-    return pb.collection('vendas').create<VendaRecord>(data, {
+    return pb.collection('vendas').create<VendaRecord>(payload, {
       expand: VENDA_EXPAND,
     })
   },
 
   async update(id: string, data: Partial<VendaRecord>) {
-    return pb.collection('vendas').update<VendaRecord>(id, data, {
+    const payload: Partial<VendaRecord> = { ...data }
+    if (typeof payload.observacoes === 'string') {
+      payload.observacoes = payload.observacoes.trim().toUpperCase()
+    }
+    return pb.collection('vendas').update<VendaRecord>(id, payload, {
       expand: VENDA_EXPAND,
     })
   },

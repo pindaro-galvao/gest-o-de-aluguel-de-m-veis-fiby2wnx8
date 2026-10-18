@@ -18,11 +18,19 @@ export const categoriasService = {
   },
 
   async create(data: { nome: string; descricao?: string; ordem?: number; ativo?: boolean }) {
-    return pb.collection('categorias').create<CategoriaRecord>(data)
+    const payload = {
+      ...data,
+      nome: data.nome.trim().toUpperCase(),
+      descricao: data.descricao ? data.descricao.trim().toUpperCase() : '',
+    }
+    return pb.collection('categorias').create<CategoriaRecord>(payload)
   },
 
   async update(id: string, data: Partial<CategoriaRecord>) {
-    return pb.collection('categorias').update<CategoriaRecord>(id, data)
+    const payload: Partial<CategoriaRecord> = { ...data }
+    if (typeof payload.nome === 'string') payload.nome = payload.nome.trim().toUpperCase()
+    if (typeof payload.descricao === 'string') payload.descricao = payload.descricao.trim().toUpperCase()
+    return pb.collection('categorias').update<CategoriaRecord>(id, payload)
   },
 
   async delete(id: string) {

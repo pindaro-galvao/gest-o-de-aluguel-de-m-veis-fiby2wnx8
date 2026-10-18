@@ -28,11 +28,19 @@ export const atributosService = {
   },
 
   async create(data: { codigo_atr: string; descricao_atr: string; ativo?: boolean }) {
-    return pb.collection('atributos').create<AtributoRecord>(data)
+    const payload = {
+      ...data,
+      codigo_atr: data.codigo_atr.trim().toUpperCase(),
+      descricao_atr: data.descricao_atr.trim().toUpperCase(),
+    }
+    return pb.collection('atributos').create<AtributoRecord>(payload)
   },
 
   async update(id: string, data: Partial<AtributoRecord>) {
-    return pb.collection('atributos').update<AtributoRecord>(id, data)
+    const payload: Partial<AtributoRecord> = { ...data }
+    if (typeof payload.codigo_atr === 'string') payload.codigo_atr = payload.codigo_atr.trim().toUpperCase()
+    if (typeof payload.descricao_atr === 'string') payload.descricao_atr = payload.descricao_atr.trim().toUpperCase()
+    return pb.collection('atributos').update<AtributoRecord>(id, payload)
   },
 
   async delete(id: string) {

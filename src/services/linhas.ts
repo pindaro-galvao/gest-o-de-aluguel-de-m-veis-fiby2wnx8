@@ -18,11 +18,19 @@ export const linhasService = {
   },
 
   async create(data: { nome: string; descricao?: string; ordem?: number; ativo?: boolean }) {
-    return pb.collection('linhas').create<LinhaRecord>(data)
+    const payload = {
+      ...data,
+      nome: data.nome.trim().toUpperCase(),
+      descricao: data.descricao ? data.descricao.trim().toUpperCase() : '',
+    }
+    return pb.collection('linhas').create<LinhaRecord>(payload)
   },
 
   async update(id: string, data: Partial<LinhaRecord>) {
-    return pb.collection('linhas').update<LinhaRecord>(id, data)
+    const payload: Partial<LinhaRecord> = { ...data }
+    if (typeof payload.nome === 'string') payload.nome = payload.nome.trim().toUpperCase()
+    if (typeof payload.descricao === 'string') payload.descricao = payload.descricao.trim().toUpperCase()
+    return pb.collection('linhas').update<LinhaRecord>(id, payload)
   },
 
   async delete(id: string) {

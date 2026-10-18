@@ -27,11 +27,21 @@ export const clientesService = {
   },
 
   async create(data: Partial<ClienteRecord>) {
-    return pb.collection('clientes').create<ClienteRecord>(data)
+    const payload: Partial<ClienteRecord> = { ...data }
+    if (typeof payload.nome === 'string') payload.nome = payload.nome.trim().toUpperCase()
+    if (typeof payload.endereco === 'string') payload.endereco = payload.endereco.trim().toUpperCase()
+    if (typeof payload.telefone === 'string') payload.telefone = payload.telefone.trim().toUpperCase()
+    if (typeof payload.email === 'string') payload.email = payload.email.trim()
+    return pb.collection('clientes').create<ClienteRecord>(payload)
   },
 
   async update(id: string, data: Partial<ClienteRecord>) {
-    return pb.collection('clientes').update<ClienteRecord>(id, data)
+    const payload: Partial<ClienteRecord> = { ...data }
+    if (typeof payload.nome === 'string') payload.nome = payload.nome.trim().toUpperCase()
+    if (typeof payload.endereco === 'string') payload.endereco = payload.endereco.trim().toUpperCase()
+    if (typeof payload.telefone === 'string') payload.telefone = payload.telefone.trim().toUpperCase()
+    if (typeof payload.email === 'string') payload.email = payload.email.trim()
+    return pb.collection('clientes').update<ClienteRecord>(id, payload)
   },
 
   async delete(id: string) {

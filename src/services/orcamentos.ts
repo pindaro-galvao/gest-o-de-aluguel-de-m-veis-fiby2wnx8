@@ -35,7 +35,11 @@ export const orcamentosService = {
     },
     itens: Array<{ produto: string; quantidade: number }>,
   ) {
-    const orcamento = await pb.collection('orcamentos').create<OrcamentoRecord>(data)
+    const payload = {
+      ...data,
+      observacoes: data.observacoes ? data.observacoes.trim().toUpperCase() : '',
+    }
+    const orcamento = await pb.collection('orcamentos').create<OrcamentoRecord>(payload)
     for (const item of itens) {
       await pb.collection('orcamento_itens').create<OrcamentoItemRecord>({
         orcamento: orcamento.id,

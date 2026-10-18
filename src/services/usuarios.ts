@@ -24,7 +24,11 @@ export const usuariosService = {
     name: string
     role: string
   }) {
-    const user = await pb.collection('users').create<UserRecord>(data)
+    const payload = {
+      ...data,
+      name: data.name ? data.name.trim().toUpperCase() : '',
+    }
+    const user = await pb.collection('users').create<UserRecord>(payload)
     // Disparar e-mail de verificação
     try {
       await pb.collection('users').requestVerification(data.email)
@@ -35,7 +39,11 @@ export const usuariosService = {
   },
 
   async update(id: string, data: Partial<UserRecord>) {
-    return pb.collection('users').update<UserRecord>(id, data)
+    const payload: Partial<UserRecord> = { ...data }
+    if (typeof payload.name === 'string') {
+      payload.name = payload.name.trim().toUpperCase()
+    }
+    return pb.collection('users').update<UserRecord>(id, payload)
   },
 
   async delete(id: string) {

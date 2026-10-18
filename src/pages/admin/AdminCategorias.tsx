@@ -119,8 +119,8 @@ export default function AdminCategorias() {
     setIsSaving(true)
     try {
       const payload = {
-        nome: nome.trim(),
-        descricao: descricao.trim(),
+        nome: nome.trim().toUpperCase(),
+        descricao: descricao.trim().toUpperCase(),
         ordem: Number(ordem) || 0,
         ativo,
       }
@@ -277,7 +277,7 @@ export default function AdminCategorias() {
                       #{cat.ordem ?? '-'}
                     </td>
                     <td className="px-4 py-3.5">
-                      <div className="font-bold text-[#2B2B2B] capitalize">{cat.nome}</div>
+                      <div className="font-bold text-[#2B2B2B] uppercase">{cat.nome}</div>
                     </td>
                     <td className="px-4 py-3.5 text-xs text-[#6B6B6B] max-w-md">
                       {cat.descricao || '-'}
@@ -356,10 +356,10 @@ export default function AdminCategorias() {
                 id="catNome"
                 value={nome}
                 onChange={(e) => {
-                  setNome(e.target.value)
+                  setNome(e.target.value.toUpperCase())
                   if (formErrors.nome) setFormErrors((p) => ({ ...p, nome: '' }))
                 }}
-                placeholder="Ex: sofá, poltrona, mesa..."
+                placeholder="Ex: SOFÁ, POLTRONA, MESA..."
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
               />
               {formErrors.nome && <p className="text-xs text-red-600">{formErrors.nome}</p>}
@@ -373,8 +373,8 @@ export default function AdminCategorias() {
                 id="catDesc"
                 rows={2}
                 value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Ex: Sofás modulares, chaises e assentos para áreas sociais..."
+                onChange={(e) => setDescricao(e.target.value.toUpperCase())}
+                placeholder="Ex: SOFÁS MODULARES, CHAISES E ASSENTOS PARA ÁREAS SOCIAIS..."
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
               />
             </div>
