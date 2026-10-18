@@ -23,6 +23,7 @@ import AdminCategorias from './pages/admin/AdminCategorias'
 import AdminLinhas from './pages/admin/AdminLinhas'
 import AdminAtributos from './pages/admin/AdminAtributos'
 import AdminRelatorios from './pages/admin/AdminRelatorios'
+import AdminCalendarioOcupacao from './pages/admin/AdminCalendarioOcupacao'
 
 // Vendas & Orçamentos Pages
 import VendedorDashboard from './pages/vendas/VendedorDashboard'
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/usuarios" element={<AdminUsuarios />} />
             <Route path="/admin/produtos" element={<AdminProdutos />} />
+            <Route path="/admin/calendario" element={<AdminCalendarioOcupacao />} />
             <Route path="/admin/categorias" element={<AdminCategorias />} />
             <Route path="/admin/linhas" element={<AdminLinhas />} />
             <Route path="/admin/atributos" element={<AdminAtributos />} />
@@ -65,6 +67,7 @@ const App = () => (
 
             {/* Rotas VENDEDOR */}
             <Route path="/vendas" element={<VendedorDashboard />} />
+            <Route path="/vendas/calendario" element={<AdminCalendarioOcupacao />} />
             <Route path="/orcamentos" element={<OrcamentosList isAdminView={false} />} />
             <Route path="/clientes" element={<ClientesList />} />
 

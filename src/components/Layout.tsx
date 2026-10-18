@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   Sparkles,
   Palette,
+  Calendar,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -161,6 +162,20 @@ export default function Layout() {
                 >
                   <Armchair className="h-4 w-4" />
                   Produtos TIDELLI
+                </NavLink>
+                <NavLink
+                  to="/admin/calendario"
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[#A67C52] text-white'
+                        : 'text-[#D0D0D0] hover:bg-[#383838] hover:text-white'
+                    }`
+                  }
+                >
+                  <Calendar className="h-4 w-4" />
+                  Calendário de Ocupação
                 </NavLink>
                 <NavLink
                   to="/admin/categorias"
@@ -315,6 +330,20 @@ export default function Layout() {
             Minhas Vendas
           </NavLink>
           <NavLink
+            to="/vendas/calendario"
+            onClick={() => setMobileOpen(false)}
+            className={({ isActive }) =>
+              `flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-[#A67C52] text-white shadow-sm'
+                  : 'text-[#D0D0D0] hover:bg-[#383838] hover:text-white'
+              }`
+            }
+          >
+            <Calendar className="h-4 w-4 text-[#A67C52]" />
+            Calendário de Ocupação
+          </NavLink>
+          <NavLink
             to="/orcamentos"
             onClick={() => setMobileOpen(false)}
             className={({ isActive }) =>
@@ -392,6 +421,8 @@ export default function Layout() {
     if (path === '/admin') return 'Painel Geral da Administração'
     if (path === '/admin/usuarios') return 'Gestão de Usuários'
     if (path === '/admin/produtos') return 'Catálogo de Produtos TIDELLI'
+    if (path === '/admin/calendario' || path === '/vendas/calendario')
+      return 'Calendário de Ocupação por Produto'
     if (path === '/admin/categorias') return 'Gestão de Categorias'
     if (path === '/admin/linhas') return 'Gestão de Linhas TIDELLI'
     if (path === '/admin/atributos') return 'Gestão de Atributos (Cores & Materiais)'

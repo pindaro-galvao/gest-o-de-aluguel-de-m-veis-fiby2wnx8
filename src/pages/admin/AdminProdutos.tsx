@@ -27,9 +27,21 @@ import {
 } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
-import { Armchair, Plus, Search, Edit3, Trash2, Package, Palette, AlertCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Armchair,
+  Plus,
+  Search,
+  Edit3,
+  Trash2,
+  Package,
+  Palette,
+  AlertCircle,
+  CalendarDays,
+} from 'lucide-react'
 
 export default function AdminProdutos() {
+  const navigate = useNavigate()
   const [produtos, setProdutos] = useState<ProdutoRecord[]>([])
   const [categorias, setCategorias] = useState<CategoriaRecord[]>([])
   const [linhas, setLinhas] = useState<LinhaRecord[]>([])
@@ -639,6 +651,16 @@ export default function AdminProdutos() {
 
                   {/* Ações */}
                   <div className="mt-3 flex items-center gap-2 pt-2 border-t border-[#F1ECE6]">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/admin/calendario?produto=${p.id}`)}
+                      className="h-8 px-2 text-xs border-[#E5E0DA] hover:bg-[#FAF7F3] text-[#A67C52]"
+                      title="Ver calendário de ocupação deste móvel"
+                    >
+                      <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                      <span>Ocupação</span>
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
