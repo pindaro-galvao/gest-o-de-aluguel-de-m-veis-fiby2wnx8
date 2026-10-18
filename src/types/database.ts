@@ -136,7 +136,7 @@ export interface OrcamentoRecord extends RecordModel {
   validade: string
   status: StatusOrcamento
   observacoes?: string
-  vendedor: string // relation -> users
+  vendedor?: string // relation -> users (opcional quando criado por cliente)
   data_aprovacao?: string
   data_recusa?: string
   data_inicio?: string

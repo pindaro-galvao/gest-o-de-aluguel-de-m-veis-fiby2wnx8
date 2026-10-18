@@ -33,12 +33,17 @@ export const orcamentosService = {
       data_inicio?: string
       data_fim?: string
       endereco?: string
+      vendedor?: string
     },
     itens: Array<{ produto: string; quantidade: number }>,
   ) {
-    const payload = {
+    const payload: Record<string, unknown> = {
       ...data,
       observacoes: data.observacoes ? data.observacoes.trim().toUpperCase() : '',
+    }
+    // Se vendedor for explicitamente undefined ou vazio, não envia para não gerar erro de relação inválida
+    if (!payload.vendedor) {
+      delete payload.vendedor
     }
     const orcamento = await pb.collection('orcamentos').create<OrcamentoRecord>(payload, {
       expand: 'cliente,vendedor,endereco',
@@ -66,7 +71,7 @@ export const orcamentosService = {
     },
     itens: Array<{ produto: string; quantidade: number }>,
   ) {
-    const payload = {
+    const payload: Record<string, unknown> = {
       ...data,
       observacoes: data.observacoes ? data.observacoes.trim().toUpperCase() : '',
     }

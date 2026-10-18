@@ -195,27 +195,47 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
     }
   }, [clienteId])
 
+  // Obtém o registro de cliente vinculado ao usuário atual (caso perfil CLIENTE)
+  const meuClienteRecord = useMemo(() => {
+    if (role !== 'CLIENTE' || !user) return null
+    return clientes.find((c) => c.usuario === user.id || c.email === user.email) || null
+  }, [role, user, clientes])
+
   /**
    * Verifica se o usuário atual pode editar o orçamento especificado:
-   * 1. ADMIN pode editar qualquer orçamento
-   * 2. VENDEDOR pode editar somente orçamentos dele (vendedor = user.id)
-   * 3. CLIENTE não pode editar
-   * 4. Somente status EXCETO 'aprovado' e 'convertido'
+   * 1. Status 'aprovado' e 'convertido' NUNCA são editáveis por ninguém
+   * 2. ADMIN pode editar qualquer orçamento
+   * 3. VENDEDOR pode editar somente orçamentos dele (vendedor = user.id)
+   * 4. CLIENTE pode editar somente orçamentos DELE (orc.cliente = meuClienteRecord.id ou expand.cliente.usuario = user.id)
+   *    nos status editáveis (rascunho, enviado, recusado, expirado)
    */
   const podeEditarOrcamento = (orc: OrcamentoRecord): boolean => {
-    if (role === 'CLIENTE') return false
     if (orc.status === 'aprovado' || orc.status === 'convertido') return false
     if (role === 'ADMIN') return true
     if (role === 'VENDEDOR') {
       return orc.vendedor === user?.id
+    }
+    if (role === 'CLIENTE') {
+      const isMeuOrcamento =
+        (meuClienteRecord && orc.cliente === meuClienteRecord.id) ||
+        orc.expand?.cliente?.usuario === user?.id ||
+        orc.expand?.cliente?.email === user?.email
+      return !!isMeuOrcamento
     }
     return false
   }
 
   const openCreateModal = () => {
     setEditingOrcamentoId(null)
-    const initialCliente = clientes[0]?.id || ''
-    setClienteId(initialCliente)
+
+    // Se for CLIENTE, fixa obrigatoriamente no seu próprio registro de cliente
+    if (role === 'CLIENTE') {
+      const meuId = meuClienteRecord?.id || ''
+      setClienteId(meuId)
+    } else {
+      const initialCliente = clientes[0]?.id || ''
+      setClienteId(initialCliente)
+    }
 
     const hoje = new Date()
     const daqui30Dias = new Date()
@@ -249,7 +269,12 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
     }
 
     setEditingOrcamentoId(orc.id)
-    setClienteId(orc.cliente)
+    // Se for CLIENTE, clienteId é obrigatoriamente ele mesmo
+    if (role === 'CLIENTE') {
+      setClienteId(meuClienteRecord?.id || orc.cliente)
+    } else {
+      setClienteId(orc.cliente)
+    }
     setEnderecoId(orc.endereco || '')
 
     const dIni = orc.data_inicio ? formatDataISO(orc.data_inicio) : ''
@@ -401,7 +426,7 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
         await orcamentosService.update(
           editingOrcamentoId,
           {
-            cliente: clienteId,
+            cliente: role === 'CLIENTE' && meuClienteRecord ? meuClienteRecord.id : clienteId,
             endereco: enderecoId || undefined,
             valor_total: totalCalculado,
             validade: new Date(validade).toISOString(),
@@ -421,9 +446,11 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
         })
       } else {
         // MODO CRIAÇÃO
+        const targetClienteId =
+          role === 'CLIENTE' && meuClienteRecord ? meuClienteRecord.id : clienteId
         await orcamentosService.create(
           {
-            cliente: clienteId,
+            cliente: targetClienteId,
             endereco: enderecoId || undefined,
             valor_total: totalCalculado,
             validade: new Date(validade).toISOString(),
@@ -431,6 +458,8 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
             data_fim: dataFim ? `${dataFim} 00:00:00.000Z` : undefined,
             status: 'enviado',
             observacoes: observacoes.trim().toUpperCase(),
+            // Se for CLIENTE, não passa vendedor (fica vazio para posterior atribuição)
+            vendedor: role === 'CLIENTE' ? undefined : undefined,
           },
           itens.map((it) => ({
             produto: it.produtoId,
@@ -440,7 +469,10 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
 
         toast({
           title: 'Orçamento gerado com sucesso!',
-          description: 'Cotação enviada ao cliente com vendedor registrado automaticamente.',
+          description:
+            role === 'CLIENTE'
+              ? 'Seu orçamento foi registrado com sucesso e está em análise.'
+              : 'Cotação enviada ao cliente com vendedor registrado automaticamente.',
         })
       }
 
@@ -752,7 +784,7 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
           status: 'ativa',
           observacoes: observacoesConversao.trim().toUpperCase(),
           orcamento_origem: selectedOrcamento.id,
-          vendedor: selectedOrcamento.vendedor,
+          vendedor: selectedOrcamento.vendedor || user?.id,
         })
 
         if (!primeiraVendaId) {
@@ -828,15 +860,13 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
           </p>
         </div>
 
-        {role !== 'CLIENTE' && (
-          <Button
-            onClick={openCreateModal}
-            className="bg-[#A67C52] hover:bg-[#8C643F] text-white gap-2 shadow-xs"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Novo Orçamento</span>
-          </Button>
-        )}
+        <Button
+          onClick={openCreateModal}
+          className="bg-[#A67C52] hover:bg-[#8C643F] text-white gap-2 shadow-xs"
+        >
+          <Plus className="h-4 w-4" />
+          <span>{role === 'CLIENTE' ? 'Solicitar Novo Orçamento' : 'Novo Orçamento'}</span>
+        </Button>
       </div>
 
       {/* Barra de Filtros */}
@@ -918,9 +948,11 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                   </td>
                   {role !== 'CLIENTE' && (
                     <td className="px-4 py-3.5 text-xs text-[#6B6B6B]">
-                      {o.expand?.vendedor?.name || o.expand?.vendedor?.email || '-'}
+                      {o.expand?.vendedor?.name || o.expand?.vendedor?.email || (
+                        <span className="text-zinc-400 italic">Sem vendedor (Cliente)</span>
+                      )}
                     </td>
-                  )}
+                  )}{' '}
                   <td className="px-4 py-3.5 text-xs text-[#6B6B6B]">
                     {new Date(o.validade).toLocaleDateString('pt-BR')}
                   </td>
@@ -1086,20 +1118,36 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
               <Label htmlFor="orcCliente" className="text-xs font-semibold text-[#2B2B2B]">
                 Cliente *
               </Label>
-              <Select value={clienteId} onValueChange={setClienteId}>
-                <SelectTrigger className="bg-[#FBF9F6] border-[#E5E0DA]">
-                  <SelectValue placeholder="Selecione o Cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome} ({c.email})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {formErrors.clienteId && (
-                <p className="text-xs text-red-600">{formErrors.clienteId}</p>
+              {role === 'CLIENTE' ? (
+                <div className="p-2.5 rounded-lg border border-[#E5E0DA] bg-[#F3EFEA] text-xs">
+                  <div className="font-bold text-[#2B2B2B]">
+                    {meuClienteRecord?.nome || user?.name || 'Meu Cadastro'}
+                  </div>
+                  <div className="text-[11px] text-[#6B6B6B]">
+                    {meuClienteRecord?.email || user?.email}
+                  </div>
+                  <div className="text-[10px] text-[#A67C52] font-semibold mt-1">
+                    Orçamento emitido exclusivamente para sua conta de cliente
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Select value={clienteId} onValueChange={setClienteId}>
+                    <SelectTrigger className="bg-[#FBF9F6] border-[#E5E0DA]">
+                      <SelectValue placeholder="Selecione o Cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome} ({c.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.clienteId && (
+                    <p className="text-xs text-red-600">{formErrors.clienteId}</p>
+                  )}
+                </>
               )}
             </div>
 
@@ -1441,7 +1489,9 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                   <span className="font-semibold text-[#2B2B2B]">
                     {selectedOrcamento.expand?.vendedor?.name ||
                       selectedOrcamento.expand?.vendedor?.email ||
-                      'Não identificado'}
+                      (role === 'CLIENTE'
+                        ? 'Em análise pela equipe'
+                        : 'Não atribuído (Criado pelo cliente)')}
                   </span>
                 </div>
                 <div>
@@ -1622,50 +1672,49 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                 </div>
               )}
 
-              {/* Ações para VENDEDOR / ADMIN */}
-              {role !== 'CLIENTE' && (
-                <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[#F1ECE6]">
-                  <div className="flex items-center gap-2">
-                    {/* Botão de Editar no modal de detalhes */}
-                    {podeEditarOrcamento(selectedOrcamento) && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => openEditModal(selectedOrcamento)}
-                        className="border-[#A67C52] text-[#A67C52] hover:bg-[#FAF7F3] text-xs gap-1 font-semibold"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        <span>Editar Orçamento</span>
-                      </Button>
-                    )}
+              {/* Ações no rodapé do Detalhe */}
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[#F1ECE6]">
+                <div className="flex items-center gap-2">
+                  {/* Botão de Editar no modal de detalhes (ADMIN, VENDEDOR dele, ou CLIENTE dele nos status editáveis) */}
+                  {podeEditarOrcamento(selectedOrcamento) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => openEditModal(selectedOrcamento)}
+                      className="border-[#A67C52] text-[#A67C52] hover:bg-[#FAF7F3] text-xs gap-1 font-semibold"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      <span>Editar Orçamento</span>
+                    </Button>
+                  )}
 
-                    {/* Botão de Converter em Venda para status APROVADO */}
-                    {selectedOrcamento.status === 'aprovado' && (
-                      <Button
-                        onClick={() => handleAbrirConversao(selectedOrcamento)}
-                        className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs gap-1.5 shadow-xs"
-                      >
-                        <ShoppingCart className="h-4 w-4" />
-                        <span>Converter em Venda</span>
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Vendedor/Admin também podem marcar como RECUSADO manualmente se souberem por outro canal */}
-                  {selectedOrcamento.status === 'enviado' &&
-                    getStatusEfetivo(selectedOrcamento) !== 'expirado' && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsRecusaModalOpen(true)}
-                        className="border-red-300 text-red-700 hover:bg-red-50 text-xs gap-1"
-                      >
-                        <XCircle className="h-3.5 w-3.5" />
-                        <span>Marcar como Recusado</span>
-                      </Button>
-                    )}
+                  {/* Botão de Converter em Venda para status APROVADO (Apenas Vendedor/Admin) */}
+                  {role !== 'CLIENTE' && selectedOrcamento.status === 'aprovado' && (
+                    <Button
+                      onClick={() => handleAbrirConversao(selectedOrcamento)}
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs gap-1.5 shadow-xs"
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      <span>Converter em Venda</span>
+                    </Button>
+                  )}
                 </div>
-              )}
+
+                {/* Vendedor/Admin também podem marcar como RECUSADO manualmente */}
+                {role !== 'CLIENTE' &&
+                  selectedOrcamento.status === 'enviado' &&
+                  getStatusEfetivo(selectedOrcamento) !== 'expirado' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsRecusaModalOpen(true)}
+                      className="border-red-300 text-red-700 hover:bg-red-50 text-xs gap-1"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                      <span>Marcar como Recusado</span>
+                    </Button>
+                  )}
+              </div>
             </div>
           )}
         </DialogContent>

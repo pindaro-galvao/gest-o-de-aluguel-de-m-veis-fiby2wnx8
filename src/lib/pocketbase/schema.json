@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T19:42:23.295Z",
+  "generatedAt": "2026-10-18T19:52:35.217Z",
   "collections": [
     {
       "name": "users",
@@ -403,7 +403,7 @@
       "apiRules": {
         "list": "@request.auth.role = 'ADMIN' || (@request.auth.role = 'VENDEDOR' && vendedor = @request.auth.id) || (@request.auth.role = 'CLIENTE' && cliente.usuario = @request.auth.id)",
         "view": "@request.auth.role = 'ADMIN' || (@request.auth.role = 'VENDEDOR' && vendedor = @request.auth.id) || (@request.auth.role = 'CLIENTE' && cliente.usuario = @request.auth.id)",
-        "create": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR'",
+        "create": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR' || (@request.auth.role = 'CLIENTE' && @request.body.cliente != '' && @request.body.cliente.usuario = @request.auth.id)",
         "update": "@request.auth.role = 'ADMIN' || (@request.auth.role = 'VENDEDOR' && vendedor = @request.auth.id) || (@request.auth.role = 'CLIENTE' && cliente.usuario = @request.auth.id)",
         "delete": "@request.auth.role = 'ADMIN'"
       },
@@ -443,7 +443,7 @@
         {
           "name": "vendedor",
           "type": "relation",
-          "required": true,
+          "required": false,
           "system": false,
           "collectionRef": "users"
         },
@@ -507,9 +507,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR'",
-        "update": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR'",
-        "delete": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR'"
+        "create": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR' || (@request.auth.role = 'CLIENTE' && @request.body.orcamento != '' && @request.body.orcamento.cliente.usuario = @request.auth.id)",
+        "update": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR' || (@request.auth.role = 'CLIENTE' && orcamento.cliente.usuario = @request.auth.id)",
+        "delete": "@request.auth.role = 'ADMIN' || @request.auth.role = 'VENDEDOR' || (@request.auth.role = 'CLIENTE' && orcamento.cliente.usuario = @request.auth.id)"
       },
       "fields": [
         {
