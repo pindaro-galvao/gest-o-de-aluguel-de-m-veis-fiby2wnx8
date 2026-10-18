@@ -9,6 +9,7 @@ onRecordDeleteRequest((e) => {
         ' produto(s) vinculado(s). Reclassifique ou desative os produtos primeiro.',
     )
   }
+  return e.next()
 }, 'categorias')
 
 onRecordDeleteRequest((e) => {
@@ -21,4 +22,5 @@ onRecordDeleteRequest((e) => {
         ' produto(s) vinculado(s). Reclassifique ou desative os produtos primeiro.',
     )
   }
+  return e.next()
 }, 'linhas')

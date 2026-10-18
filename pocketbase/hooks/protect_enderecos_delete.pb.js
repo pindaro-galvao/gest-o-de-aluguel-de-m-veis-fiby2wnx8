@@ -24,6 +24,7 @@ onRecordDeleteRequest((e) => {
         ' contrato(s) de locação vinculado(s). Desative o endereço ao invés de excluir para manter o histórico.',
     )
   }
+  return e.next()
 }, 'enderecos')
 
 // Hook para manter apenas 1 endereço principal por cliente ao salvar (inline callback)

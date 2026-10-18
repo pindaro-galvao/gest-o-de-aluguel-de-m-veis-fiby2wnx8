@@ -23,18 +23,19 @@ const TEXT_FIELDS_TO_UPPERCASE = {
 }
 
 Object.keys(TEXT_FIELDS_TO_UPPERCASE).forEach(function (colName) {
-  var fields = TEXT_FIELDS_TO_UPPERCASE[colName]
-  var handler = function (e) {
+  var targetCol = colName
+  function handleUppercase(e) {
     if (!e.record) return e.next()
-    if (Array.isArray(fields)) {
-      for (var i = 0; i < fields.length; i++) {
-        var field = fields[i]
+    var targetFields = TEXT_FIELDS_TO_UPPERCASE[targetCol]
+    if (Array.isArray(targetFields)) {
+      for (var i = 0; i < targetFields.length; i++) {
+        var fName = targetFields[i]
         try {
-          var val = e.record.getString(field)
+          var val = e.record.getString(fName)
           if (typeof val === 'string' && val.trim() !== '') {
             var upper = val.trim().toUpperCase()
             if (val !== upper) {
-              e.record.set(field, upper)
+              e.record.set(fName, upper)
             }
           }
         } catch (_) {}
@@ -43,6 +44,6 @@ Object.keys(TEXT_FIELDS_TO_UPPERCASE).forEach(function (colName) {
     return e.next()
   }
 
-  onRecordCreateRequest(handler, colName)
-  onRecordUpdateRequest(handler, colName)
+  onRecordCreateRequest(handleUppercase, targetCol)
+  onRecordUpdateRequest(handleUppercase, targetCol)
 })

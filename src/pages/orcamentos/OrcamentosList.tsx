@@ -430,8 +430,10 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
             endereco: enderecoId || undefined,
             valor_total: totalCalculado,
             validade: new Date(validade).toISOString(),
-            data_inicio: dataInicio ? `${dataInicio} 00:00:00.000Z` : undefined,
-            data_fim: dataFim ? `${dataFim} 00:00:00.000Z` : undefined,
+            data_inicio: dataInicio
+              ? new Date(`${dataInicio}T00:00:00.000Z`).toISOString()
+              : undefined,
+            data_fim: dataFim ? new Date(`${dataFim}T00:00:00.000Z`).toISOString() : undefined,
             observacoes: observacoes.trim().toUpperCase(),
           },
           itens.map((it) => ({
@@ -454,8 +456,10 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
             endereco: enderecoId || undefined,
             valor_total: totalCalculado,
             validade: new Date(validade).toISOString(),
-            data_inicio: dataInicio ? `${dataInicio} 00:00:00.000Z` : undefined,
-            data_fim: dataFim ? `${dataFim} 00:00:00.000Z` : undefined,
+            data_inicio: dataInicio
+              ? new Date(`${dataInicio}T00:00:00.000Z`).toISOString()
+              : undefined,
+            data_fim: dataFim ? new Date(`${dataFim}T00:00:00.000Z`).toISOString() : undefined,
             status: 'enviado',
             observacoes: observacoes.trim().toUpperCase(),
             // Se for CLIENTE, não passa vendedor (fica vazio para posterior atribuição)
@@ -777,8 +781,8 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
           endereco: selectedOrcamento.endereco || undefined,
           produto: item.produto,
           quantidade: item.quantidade,
-          data_inicio: `${dIni} 00:00:00.000Z`,
-          data_fim: `${dFim} 00:00:00.000Z`,
+          data_inicio: new Date(`${dIni}T00:00:00.000Z`).toISOString(),
+          data_fim: new Date(`${dFim}T00:00:00.000Z`).toISOString(),
           valor_total: subtotalItem > 0 ? subtotalItem : selectedOrcamento.valor_total,
           forma_pagamento: formaPagamentoConversao,
           status: 'ativa',
