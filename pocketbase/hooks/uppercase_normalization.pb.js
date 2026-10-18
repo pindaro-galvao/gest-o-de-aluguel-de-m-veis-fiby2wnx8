@@ -22,14 +22,16 @@ const TEXT_FIELDS_TO_UPPERCASE = {
   users: ['name'],
 }
 
-for (const [colName, fields] of Object.entries(TEXT_FIELDS_TO_UPPERCASE)) {
-  const handler = (e) => {
+Object.keys(TEXT_FIELDS_TO_UPPERCASE).forEach(function (colName) {
+  var fields = TEXT_FIELDS_TO_UPPERCASE[colName]
+  var handler = function (e) {
     if (!e.record) return e.next()
-    for (const field of fields) {
+    for (var i = 0; i < fields.length; i++) {
+      var field = fields[i]
       try {
-        const val = e.record.getString(field)
+        var val = e.record.getString(field)
         if (typeof val === 'string' && val.trim() !== '') {
-          const upper = val.trim().toUpperCase()
+          var upper = val.trim().toUpperCase()
           if (val !== upper) {
             e.record.set(field, upper)
           }
@@ -41,4 +43,4 @@ for (const [colName, fields] of Object.entries(TEXT_FIELDS_TO_UPPERCASE)) {
 
   onRecordCreateRequest(handler, colName)
   onRecordUpdateRequest(handler, colName)
-}
+})
