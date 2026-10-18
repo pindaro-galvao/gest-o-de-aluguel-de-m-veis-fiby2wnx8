@@ -22,6 +22,7 @@ export type TipoProduto =
 
 export interface ProdutoRecord extends RecordModel {
   nome: string
+  linha?: string
   tipo: TipoProduto
   dimensoes?: string
   descricao?: string

@@ -170,9 +170,14 @@ export default function ClienteRelatorio() {
                 className="rounded-xl border border-[#E5E0DA] bg-[#FAF7F3] p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:bg-white hover:shadow-xs"
               >
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-bold text-base text-[#2B2B2B]">
                       {v.expand?.produto?.nome || 'Móvel TIDELLI'}
+                      {v.expand?.produto?.linha && (
+                        <span className="font-normal text-xs text-[#A67C52] ml-1.5">
+                          · Linha {v.expand.produto.linha}
+                        </span>
+                      )}
                     </h4>
                     <Badge
                       variant="outline"

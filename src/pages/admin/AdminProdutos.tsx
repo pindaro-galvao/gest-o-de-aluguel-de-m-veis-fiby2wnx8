@@ -49,6 +49,7 @@ export default function AdminProdutos() {
   const [produtos, setProdutos] = useState<ProdutoRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [tipoFilter, setTipoFilter] = useState('TODOS')
+  const [linhaFilter, setLinhaFilter] = useState('TODAS')
   const [searchTerm, setSearchTerm] = useState('')
 
   // Modal State
@@ -57,6 +58,7 @@ export default function AdminProdutos() {
 
   // Form Fields
   const [nome, setNome] = useState('')
+  const [linha, setLinha] = useState('')
   const [tipo, setTipo] = useState<TipoProduto>('sofá')
   const [dimensoes, setDimensoes] = useState('')
   const [descricao, setDescricao] = useState('')
@@ -95,6 +97,7 @@ export default function AdminProdutos() {
   const openCreateModal = () => {
     setEditingProduto(null)
     setNome('')
+    setLinha('')
     setTipo('sofá')
     setDimensoes('')
     setDescricao('')
@@ -108,6 +111,7 @@ export default function AdminProdutos() {
   const openEditModal = (p: ProdutoRecord) => {
     setEditingProduto(p)
     setNome(p.nome)
+    setLinha(p.linha || '')
     setTipo(p.tipo)
     setDimensoes(p.dimensoes || '')
     setDescricao(p.descricao || '')
@@ -136,6 +140,7 @@ export default function AdminProdutos() {
     try {
       const formData = new FormData()
       formData.append('nome', nome.trim())
+      formData.append('linha', linha.trim())
       formData.append('tipo', tipo)
       formData.append('dimensoes', dimensoes.trim())
       formData.append('descricao', descricao.trim())
@@ -192,13 +197,22 @@ export default function AdminProdutos() {
     }
   }
 
+  // Lista de linhas distintas existentes nos produtos cadastrados (ignorando vazias)
+  const availableLinhas = Array.from(
+    new Set(produtos.map((p) => (p.linha ? p.linha.trim() : '')).filter((l) => Boolean(l))),
+  ).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+
   const filteredProdutos = produtos.filter((p) => {
     const matchTipo = tipoFilter === 'TODOS' || p.tipo === tipoFilter
+    const matchLinha =
+      linhaFilter === 'TODAS' ||
+      (p.linha && p.linha.trim().toLowerCase() === linhaFilter.toLowerCase())
     const term = searchTerm.toLowerCase()
     const matchSearch =
       p.nome.toLowerCase().includes(term) ||
+      (p.linha && p.linha.toLowerCase().includes(term)) ||
       (p.descricao && p.descricao.toLowerCase().includes(term))
-    return matchTipo && matchSearch
+    return matchTipo && matchLinha && matchSearch
   })
 
   const formatCurrency = (val: number) => {
@@ -234,14 +248,14 @@ export default function AdminProdutos() {
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C8C8C]" />
           <Input
-            placeholder="Buscar por nome ou descrição..."
+            placeholder="Buscar por nome, linha ou descrição..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 bg-white border-[#E5E0DA]"
           />
         </div>
 
-        <div className="w-full sm:w-56">
+        <div className="w-full sm:w-48">
           <Select value={tipoFilter} onValueChange={setTipoFilter}>
             <SelectTrigger className="bg-white border-[#E5E0DA]">
               <SelectValue placeholder="Filtrar por Categoria" />
@@ -256,6 +270,24 @@ export default function AdminProdutos() {
             </SelectContent>
           </Select>
         </div>
+
+        {availableLinhas.length > 0 && (
+          <div className="w-full sm:w-48">
+            <Select value={linhaFilter} onValueChange={setLinhaFilter}>
+              <SelectTrigger className="bg-white border-[#E5E0DA]">
+                <SelectValue placeholder="Filtrar por Linha" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TODAS">Todas as Linhas</SelectItem>
+                {availableLinhas.map((lin) => (
+                  <SelectItem key={lin} value={lin}>
+                    Linha {lin}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Grid de Produtos em Cards */}
@@ -300,7 +332,14 @@ export default function AdminProdutos() {
 
                   {/* Informações */}
                   <div className="p-4 space-y-2">
-                    <h3 className="font-bold text-base text-[#2B2B2B] line-clamp-1">{p.nome}</h3>
+                    <div>
+                      {p.linha && p.linha.trim() && (
+                        <span className="inline-block text-[11px] font-semibold text-[#A67C52] tracking-wide mb-0.5">
+                          Linha {p.linha}
+                        </span>
+                      )}
+                      <h3 className="font-bold text-base text-[#2B2B2B] line-clamp-1">{p.nome}</h3>
+                    </div>
                     {p.dimensoes && (
                       <p className="text-xs text-[#6B6B6B]">Dimensões: {p.dimensoes}</p>
                     )}
@@ -367,21 +406,36 @@ export default function AdminProdutos() {
           </DialogHeader>
 
           <form onSubmit={handleSave} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="prodNome" className="text-xs font-semibold text-[#2B2B2B]">
-                Nome do Produto
-              </Label>
-              <Input
-                id="prodNome"
-                value={nome}
-                onChange={(e) => {
-                  setNome(e.target.value)
-                  if (formErrors.nome) setFormErrors((p) => ({ ...p, nome: '' }))
-                }}
-                placeholder="Ex: Sofá Retrátil Maui 3 Lugares"
-                className="bg-[#FBF9F6] border-[#E5E0DA]"
-              />
-              {formErrors.nome && <p className="text-xs text-red-600">{formErrors.nome}</p>}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label htmlFor="prodNome" className="text-xs font-semibold text-[#2B2B2B]">
+                  Nome do Produto <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="prodNome"
+                  value={nome}
+                  onChange={(e) => {
+                    setNome(e.target.value)
+                    if (formErrors.nome) setFormErrors((p) => ({ ...p, nome: '' }))
+                  }}
+                  placeholder="Ex: Sofá Retrátil Maui 3 Lugares"
+                  className="bg-[#FBF9F6] border-[#E5E0DA]"
+                />
+                {formErrors.nome && <p className="text-xs text-red-600">{formErrors.nome}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="prodLinha" className="text-xs font-semibold text-[#2B2B2B]">
+                  Linha <span className="text-[11px] font-normal text-[#8C8C8C]">(opcional)</span>
+                </Label>
+                <Input
+                  id="prodLinha"
+                  value={linha}
+                  onChange={(e) => setLinha(e.target.value)}
+                  placeholder="Ex: Linha Maui"
+                  className="bg-[#FBF9F6] border-[#E5E0DA]"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

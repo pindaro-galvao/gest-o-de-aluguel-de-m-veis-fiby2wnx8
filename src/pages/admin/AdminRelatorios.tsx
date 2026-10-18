@@ -221,7 +221,14 @@ export default function AdminRelatorios() {
                 {filteredVendas.map((v) => (
                   <tr key={v.id} className="hover:bg-[#FAF7F3]">
                     <td className="px-3 py-2.5 font-medium">{v.expand?.cliente?.nome || '-'}</td>
-                    <td className="px-3 py-2.5">{v.expand?.produto?.nome || '-'}</td>
+                    <td className="px-3 py-2.5">
+                      <div>{v.expand?.produto?.nome || '-'}</div>
+                      {v.expand?.produto?.linha && (
+                        <span className="text-[11px] text-[#A67C52] font-medium">
+                          Linha {v.expand.produto.linha}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-2.5">{v.quantidade}</td>
                     <td className="px-3 py-2.5 text-xs text-[#6B6B6B]">
                       {new Date(v.data_inicio).toLocaleDateString('pt-BR')} a{' '}

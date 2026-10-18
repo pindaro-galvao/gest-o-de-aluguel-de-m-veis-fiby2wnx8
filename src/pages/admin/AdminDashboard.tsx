@@ -337,6 +337,11 @@ export default function AdminDashboard() {
                       <div className="font-semibold text-xs">
                         {v.expand?.produto?.nome || 'Produto'}
                       </div>
+                      {v.expand?.produto?.linha && (
+                        <div className="text-[11px] text-[#A67C52] font-medium">
+                          Linha {v.expand.produto.linha}
+                        </div>
+                      )}
                       <div className="text-[11px] text-[#6B6B6B]">{v.quantidade} unidade(s)</div>
                     </td>
                     <td className="px-4 py-3.5 text-xs text-[#6B6B6B]">

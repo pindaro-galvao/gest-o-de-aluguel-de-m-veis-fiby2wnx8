@@ -480,7 +480,9 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                           <SelectContent>
                             {produtos.map((p) => (
                               <SelectItem key={p.id} value={p.id}>
-                                {p.nome} ({formatCurrency(p.valor_locacao_mensal)}/mês)
+                                {p.nome}
+                                {p.linha ? ` (Linha ${p.linha})` : ''} (
+                                {formatCurrency(p.valor_locacao_mensal)}/mês)
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -630,6 +632,11 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                         <div className="font-semibold text-[#2B2B2B]">
                           {item.expand?.produto?.nome || 'Móvel TIDELLI'}
                         </div>
+                        {item.expand?.produto?.linha && (
+                          <div className="text-[11px] font-medium text-[#A67C52]">
+                            Linha {item.expand.produto.linha}
+                          </div>
+                        )}
                         <div className="text-[11px] text-[#6B6B6B]">
                           Qtd: {item.quantidade} •{' '}
                           {formatCurrency(item.expand?.produto?.valor_locacao_mensal || 0)}/mês cada
