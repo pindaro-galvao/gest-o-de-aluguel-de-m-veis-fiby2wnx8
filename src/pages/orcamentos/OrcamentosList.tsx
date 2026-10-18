@@ -464,6 +464,18 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
   // Execução do reenvio com nova validade
   const handleConfirmarReenviar = async () => {
     if (!selectedOrcamento || !novaValidadeReenvio) return
+
+    // Validação de data: nova validade deve ser futura
+    const hojeStr = formatDataISO(new Date())
+    if (novaValidadeReenvio <= hojeStr) {
+      toast({
+        variant: 'destructive',
+        title: 'Data de Validade Inválida',
+        description: 'A nova data de validade deve ser posterior à data de hoje.',
+      })
+      return
+    }
+
     setIsReenviando(true)
     try {
       const isoValidade = new Date(`${novaValidadeReenvio}T23:59:59.000Z`).toISOString()
@@ -879,8 +891,8 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                   </td>
                   <td className="px-4 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      {/* Botão de Reenviar direto na tabela se for Vendedor/Admin e status for expirado */}
-                      {role !== 'CLIENTE' && getStatusEfetivo(o) === 'expirado' && (
+                      {/* Botão de Reenviar direto na tabela se o status for expirado */}
+                      {getStatusEfetivo(o) === 'expirado' && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -1420,20 +1432,18 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                   </div>
                   <p>
                     {role === 'CLIENTE'
-                      ? 'O prazo desta proposta expirou. Peça ao seu consultor TIDELLI uma atualização dos valores e disponibilidade.'
+                      ? 'O prazo desta proposta expirou. Você pode revalidar a data e reenviar o orçamento.'
                       : 'A data limite desta cotação já passou. Você pode revalidar a data e reenviar a proposta ao cliente.'}
                   </p>
-                  {role !== 'CLIENTE' && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => handleAbrirReenviar(selectedOrcamento)}
-                      className="bg-[#A67C52] hover:bg-[#8C643F] text-white gap-1.5 text-xs font-semibold"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                      <span>Revalidar e Reenviar Orçamento</span>
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleAbrirReenviar(selectedOrcamento)}
+                    className="bg-[#A67C52] hover:bg-[#8C643F] text-white gap-1.5 text-xs font-semibold"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span>Revalidar e Reenviar Orçamento</span>
+                  </Button>
                 </div>
               )}
 
