@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T20:00:52.655Z",
+  "generatedAt": "2026-10-27T22:15:42.375Z",
   "collections": [
     {
       "name": "users",
@@ -344,7 +344,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["ativa", "encerrada", "cancelada"]
+          "selectValues": ["ativa", "encerrada", "cancelada", "aprovada"]
         },
         {
           "name": "observacoes",

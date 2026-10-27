@@ -98,7 +98,7 @@ export interface ClienteRecord extends RecordModel {
 }
 
 export type FormaPagamento = 'debito_em_conta' | 'credito' | 'boleto' | 'pix'
-export type StatusVenda = 'ativa' | 'encerrada' | 'cancelada'
+export type StatusVenda = 'ativa' | 'encerrada' | 'cancelada' | 'aprovada'
 
 export interface VendaRecord extends RecordModel {
   cliente: string // relation -> clientes

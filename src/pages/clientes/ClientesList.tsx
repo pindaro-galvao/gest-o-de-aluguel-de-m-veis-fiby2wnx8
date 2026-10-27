@@ -30,6 +30,9 @@ import {
   BadgeDollarSign,
   Receipt,
   Star,
+  Pencil,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react'
 import { GerenciadorEnderecos } from '@/components/GerenciadorEnderecos'
 
@@ -60,6 +63,22 @@ export default function ClientesList() {
   const [endCep, setEndCep] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  // Modal Editar Cliente
+  const [editingCliente, setEditingCliente] = useState<ClienteRecord | null>(null)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editNome, setEditNome] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editTelefone, setEditTelefone] = useState('')
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({})
+
+  // Modal Excluir Cliente
+  const [deletingCliente, setDeletingCliente] = useState<ClienteRecord | null>(null)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isCheckingDelete, setIsCheckingDelete] = useState(false)
+  const [hasVendaAprovadaBloqueio, setHasVendaAprovadaBloqueio] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Modal Detalhes do Cliente
   const [selectedCliente, setSelectedCliente] = useState<ClienteRecord | null>(null)
@@ -188,6 +207,109 @@ export default function ClientesList() {
       })
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const openEditModal = (c: ClienteRecord) => {
+    setEditingCliente(c)
+    setEditNome(c.nome || '')
+    setEditEmail(c.email || '')
+    setEditTelefone(c.telefone || '')
+    setEditFormErrors({})
+    setIsEditOpen(true)
+  }
+
+  const validateEdit = () => {
+    const errs: Record<string, string> = {}
+    if (!editNome.trim()) errs.editNome = 'Nome do cliente é obrigatório.'
+    if (!editEmail.trim() || !/\S+@\S+\.\S+/.test(editEmail))
+      errs.editEmail = 'E-mail válido é obrigatório.'
+    setEditFormErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingCliente || !validateEdit()) return
+
+    setIsSavingEdit(true)
+    try {
+      await clientesService.update(editingCliente.id, {
+        nome: editNome.trim().toUpperCase(),
+        email: editEmail.trim(),
+        telefone: editTelefone.trim().toUpperCase(),
+      })
+
+      toast({
+        title: 'Cliente atualizado com sucesso!',
+        description: 'Os dados cadastrais do cliente foram salvos.',
+      })
+
+      setIsEditOpen(false)
+      setEditingCliente(null)
+      loadClientes()
+    } catch (err: unknown) {
+      console.error(err)
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao atualizar cliente',
+        description: err instanceof Error ? err.message : 'Verifique os dados informados.',
+      })
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
+  const openDeleteModal = async (c: ClienteRecord) => {
+    setDeletingCliente(c)
+    setIsDeleteOpen(true)
+    setIsCheckingDelete(true)
+    setHasVendaAprovadaBloqueio(false)
+
+    try {
+      const hasVendas = await clientesService.hasVendasAprovadas(c.id)
+      setHasVendaAprovadaBloqueio(hasVendas)
+    } catch (e) {
+      console.error(e)
+      setHasVendaAprovadaBloqueio(true)
+    } finally {
+      setIsCheckingDelete(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingCliente) return
+    if (hasVendaAprovadaBloqueio) {
+      toast({
+        variant: 'destructive',
+        title: 'Exclusão bloqueada',
+        description: 'CLIENTE POSSUI LOCAÇÃO APROVADA — NÃO É POSSÍVEL EXCLUIR.',
+      })
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      await clientesService.delete(deletingCliente.id)
+      toast({
+        title: 'Cliente excluído com sucesso!',
+        description: `${deletingCliente.nome} foi removido da base cadastral.`,
+      })
+      setIsDeleteOpen(false)
+      setDeletingCliente(null)
+      loadClientes()
+    } catch (err: unknown) {
+      console.error(err)
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao excluir cliente',
+        description:
+          err instanceof Error
+            ? err.message
+            : 'CLIENTE POSSUI LOCAÇÃO APROVADA — NÃO É POSSÍVEL EXCLUIR.',
+      })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -344,15 +466,37 @@ export default function ClientesList() {
                     {c.created ? new Date(c.created).toLocaleDateString('pt-BR') : '-'}
                   </td>
                   <td className="px-4 py-3.5 text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenDetail(c)}
-                      className="h-8 gap-1.5 text-xs border-[#E5E0DA] hover:bg-[#FAF7F3]"
-                    >
-                      <Eye className="h-3.5 w-3.5 text-[#A67C52]" />
-                      <span>Ver Histórico</span>
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditModal(c)}
+                        className="h-8 gap-1 text-xs border-[#A67C52] text-[#A67C52] hover:bg-[#FAF7F3]"
+                        title="Editar Dados do Cliente"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span>Editar</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openDeleteModal(c)}
+                        className="h-8 gap-1 text-xs border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        title="Excluir Cliente (apenas se sem locações ativas/aprovadas)"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Excluir</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenDetail(c)}
+                        className="h-8 gap-1.5 text-xs border-[#E5E0DA] hover:bg-[#FAF7F3]"
+                      >
+                        <Eye className="h-3.5 w-3.5 text-[#A67C52]" />
+                        <span>Histórico</span>
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -790,6 +934,181 @@ export default function ClientesList() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Editar Cliente */}
+      <Dialog
+        open={isEditOpen}
+        onOpenChange={(open) => {
+          setIsEditOpen(open)
+          if (!open) setEditingCliente(null)
+        }}
+      >
+        <DialogContent className="max-w-lg bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-[#2B2B2B]">Editar Cliente</DialogTitle>
+            <DialogDescription className="text-xs text-[#6B6B6B]">
+              Atualize os dados de cadastro deste cliente. Textos em MAIÚSCULO.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveEdit} className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <Label htmlFor="editCliNome" className="text-xs font-semibold text-[#2B2B2B]">
+                Nome Completo / Razão Social *
+              </Label>
+              <Input
+                id="editCliNome"
+                value={editNome}
+                onChange={(e) => {
+                  setEditNome(e.target.value.toUpperCase())
+                  if (editFormErrors.editNome) setEditFormErrors((p) => ({ ...p, editNome: '' }))
+                }}
+                placeholder="EX: MARIANA SILVA"
+                className="bg-[#FBF9F6] border-[#E5E0DA]"
+              />
+              {editFormErrors.editNome && (
+                <p className="text-xs text-red-600">{editFormErrors.editNome}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="editCliEmail" className="text-xs font-semibold text-[#2B2B2B]">
+                  E-mail *
+                </Label>
+                <Input
+                  id="editCliEmail"
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => {
+                    setEditEmail(e.target.value)
+                    if (editFormErrors.editEmail)
+                      setEditFormErrors((p) => ({ ...p, editEmail: '' }))
+                  }}
+                  placeholder="mariana@cliente.com.br"
+                  className="bg-[#FBF9F6] border-[#E5E0DA]"
+                />
+                {editFormErrors.editEmail && (
+                  <p className="text-xs text-red-600">{editFormErrors.editEmail}</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="editCliTel" className="text-xs font-semibold text-[#2B2B2B]">
+                  Telefone / WhatsApp
+                </Label>
+                <Input
+                  id="editCliTel"
+                  value={editTelefone}
+                  onChange={(e) => setEditTelefone(e.target.value.toUpperCase())}
+                  placeholder="(11) 98765-4321"
+                  className="bg-[#FBF9F6] border-[#E5E0DA]"
+                />
+              </div>
+            </div>
+
+            <p className="text-[11px] text-[#8C8C8C]">
+              Nota: os endereços vinculados possuem gerenciador próprio dentro do histórico do
+              cliente.
+            </p>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSavingEdit}
+                onClick={() => {
+                  setIsEditOpen(false)
+                  setEditingCliente(null)
+                }}
+                className="border-[#E5E0DA]"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSavingEdit}
+                className="bg-[#A67C52] hover:bg-[#8C643F] text-white"
+              >
+                {isSavingEdit ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Excluir Cliente (com verificação e bloqueio se houver locação aprovada/ativa) */}
+      <Dialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          setIsDeleteOpen(open)
+          if (!open) setDeletingCliente(null)
+        }}
+      >
+        <DialogContent className="max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-[#2B2B2B] flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-600" />
+              <span>Excluir Cliente</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[#6B6B6B] pt-2">
+              {isCheckingDelete ? (
+                <div className="py-4 flex items-center justify-center gap-2 text-[#A67C52]">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#A67C52] border-t-transparent" />
+                  <span>Verificando histórico de locações do cliente...</span>
+                </div>
+              ) : hasVendaAprovadaBloqueio ? (
+                <div className="p-3.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-900 space-y-2 mt-2">
+                  <div className="flex items-start gap-2 font-bold text-red-700">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>CLIENTE POSSUI LOCAÇÃO APROVADA — NÃO É POSSÍVEL EXCLUIR</span>
+                  </div>
+                  <p className="text-[11px] text-red-800 leading-relaxed">
+                    O cliente <strong>{deletingCliente?.nome}</strong> possui contratos de locação
+                    ativos ou aprovados vinculados ao seu cadastro. Por integridade fiscal e
+                    histórico operacional, este registro não pode ser excluído.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 mt-2">
+                  <p>
+                    Deseja realmente excluir o cadastro de{' '}
+                    <strong className="text-[#2B2B2B]">{deletingCliente?.nome}</strong>?
+                  </p>
+                  <p className="text-[11px] text-[#8C8C8C]">
+                    Esta ação removerá o registro do cliente. Esta operação é irreversível.
+                  </p>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isDeleting}
+              onClick={() => {
+                setIsDeleteOpen(false)
+                setDeletingCliente(null)
+              }}
+              className="border-[#E5E0DA]"
+            >
+              {hasVendaAprovadaBloqueio ? 'Fechar' : 'Cancelar'}
+            </Button>
+            {!hasVendaAprovadaBloqueio && (
+              <Button
+                type="button"
+                disabled={isDeleting || isCheckingDelete}
+                onClick={handleConfirmDelete}
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+              >
+                {isDeleting ? 'Excluindo...' : 'Confirmar Exclusão'}
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

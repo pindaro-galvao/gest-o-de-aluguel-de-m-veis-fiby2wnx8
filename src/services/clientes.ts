@@ -51,4 +51,16 @@ export const clientesService = {
   async delete(id: string) {
     return pb.collection('clientes').delete(id)
   },
+
+  async hasVendasAprovadas(clienteId: string): Promise<boolean> {
+    try {
+      const res = await pb.collection('vendas').getList(1, 1, {
+        filter: `cliente = "${clienteId}" && (status = "aprovada" || status = "ativa")`,
+      })
+      return res.totalItems > 0
+    } catch (e) {
+      console.error('Erro ao verificar vendas aprovadas do cliente:', e)
+      return true // bloqueia preventivamente se falhar
+    }
+  },
 }

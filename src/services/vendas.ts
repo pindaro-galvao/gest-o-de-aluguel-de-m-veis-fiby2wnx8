@@ -55,4 +55,10 @@ export const vendasService = {
   async delete(id: string) {
     return pb.collection('vendas').delete(id)
   },
+
+  async cancelar(id: string) {
+    return pb
+      .collection('vendas')
+      .update<VendaRecord>(id, { status: 'cancelada' }, { expand: VENDA_EXPAND })
+  },
 }

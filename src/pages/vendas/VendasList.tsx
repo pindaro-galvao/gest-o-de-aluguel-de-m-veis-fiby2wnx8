@@ -54,6 +54,8 @@ import {
   FileText,
   Printer,
   MapPin,
+  Pencil,
+  XCircle,
 } from 'lucide-react'
 import { ContratoModal } from '@/components/ContratoModal'
 import { GerenciadorEnderecos } from '@/components/GerenciadorEnderecos'
@@ -79,9 +81,15 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
   const [selectedVendaContrato, setSelectedVendaContrato] = useState<VendaRecord | null>(null)
   const [isContratoOpen, setIsContratoOpen] = useState(false)
 
-  // Modal Nova Venda
+  // Modal Nova Venda / Edição de Locação
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [editingVendaId, setEditingVendaId] = useState<string | null>(null)
+
+  // Modal Cancelamento de Locação
+  const [vendaParaCancelar, setVendaParaCancelar] = useState<VendaRecord | null>(null)
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
+  const [isCanceling, setIsCanceling] = useState(false)
 
   // Campos do Form de Venda
   const [clienteId, setClienteId] = useState('')
@@ -179,7 +187,13 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
 
     const timer = setTimeout(() => {
       disponibilidadeService
-        .verificarDisponibilidadeProduto(produtoId, dataInicio, dataFim, quantidade)
+        .verificarDisponibilidadeProduto(
+          produtoId,
+          dataInicio,
+          dataFim,
+          quantidade,
+          editingVendaId || undefined,
+        )
         .then((res) => {
           if (isMounted) {
             setDisponibilidadeInfo(res)
@@ -196,7 +210,7 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
       isMounted = false
       clearTimeout(timer)
     }
-  }, [isModalOpen, produtoId, dataInicio, dataFim, quantidade])
+  }, [isModalOpen, produtoId, dataInicio, dataFim, quantidade, editingVendaId])
 
   // Carrega endereços sempre que o cliente selecionado mudar no form de venda
   useEffect(() => {
@@ -229,6 +243,7 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
   }, [clienteId])
 
   const openCreateModal = () => {
+    setEditingVendaId(null)
     const initialCli = clientes[0]?.id || ''
     setClienteId(initialCli)
     setProdutoId(produtos[0]?.id || '')
@@ -245,6 +260,50 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
     setObservacoes('')
     setFormErrors({})
     setIsModalOpen(true)
+  }
+
+  const openEditModal = (v: VendaRecord) => {
+    setEditingVendaId(v.id)
+    setClienteId(v.cliente)
+    setEnderecoId(v.endereco || '')
+    setProdutoId(v.produto)
+    setQuantidade(v.quantidade || 1)
+    setDataInicio(v.data_inicio ? v.data_inicio.split('T')[0] : '')
+    setDataFim(v.data_fim ? v.data_fim.split('T')[0] : '')
+    setFormaPagamento(v.forma_pagamento || 'debito_em_conta')
+    setStatus(v.status || 'ativa')
+    setObservacoes(v.observacoes || '')
+    setFormErrors({})
+    setIsModalOpen(true)
+  }
+
+  const openCancelarModal = (v: VendaRecord) => {
+    setVendaParaCancelar(v)
+    setIsCancelModalOpen(true)
+  }
+
+  const handleConfirmarCancelamento = async () => {
+    if (!vendaParaCancelar) return
+    setIsCanceling(true)
+    try {
+      await vendasService.cancelar(vendaParaCancelar.id)
+      toast({
+        title: 'Locação cancelada!',
+        description: 'O status da locação foi atualizado para CANCELADA e o estoque foi liberado.',
+      })
+      setIsCancelModalOpen(false)
+      setVendaParaCancelar(null)
+      loadData()
+    } catch (err: unknown) {
+      console.error(err)
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao cancelar locação',
+        description: err instanceof Error ? err.message : 'Não foi possível cancelar a locação.',
+      })
+    } finally {
+      setIsCanceling(false)
+    }
   }
 
   const validate = () => {
@@ -271,12 +330,13 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
 
     setIsSaving(true)
     try {
-      // Re-valida disponibilidade no momento do salvamento para segurança
+      // Re-valida disponibilidade no momento do salvamento para segurança (ignorando a locação atual se for edição)
       const checagemFinal = await disponibilidadeService.verificarDisponibilidadeProduto(
         produtoId,
         dataInicio,
         dataFim,
         quantidade,
+        editingVendaId || undefined,
       )
       if (!checagemFinal.temDisponibilidade) {
         toast({
@@ -292,30 +352,51 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
         return
       }
 
-      await vendasService.create({
-        cliente: clienteId,
-        endereco: enderecoId || undefined,
-        produto: produtoId,
-        quantidade,
-        data_inicio: new Date(`${dataInicio}T00:00:00.000Z`).toISOString(),
-        data_fim: new Date(`${dataFim}T00:00:00.000Z`).toISOString(),
-        forma_pagamento: formaPagamento,
-        valor_total: valorTotalCalculado,
-        status,
-        observacoes: observacoes.trim().toUpperCase(),
-      })
-      toast({
-        title: 'Locação cadastrada!',
-        description: 'Contrato de aluguel criado e associado ao seu usuário vendedor com sucesso.',
-      })
+      if (editingVendaId) {
+        await vendasService.update(editingVendaId, {
+          cliente: clienteId,
+          endereco: enderecoId || undefined,
+          produto: produtoId,
+          quantidade,
+          data_inicio: new Date(`${dataInicio}T00:00:00.000Z`).toISOString(),
+          data_fim: new Date(`${dataFim}T00:00:00.000Z`).toISOString(),
+          forma_pagamento: formaPagamento,
+          valor_total: valorTotalCalculado,
+          status,
+          observacoes: observacoes.trim().toUpperCase(),
+        })
+        toast({
+          title: 'Locação atualizada!',
+          description: 'Os dados do contrato foram recalculados e salvos com sucesso.',
+        })
+      } else {
+        await vendasService.create({
+          cliente: clienteId,
+          endereco: enderecoId || undefined,
+          produto: produtoId,
+          quantidade,
+          data_inicio: new Date(`${dataInicio}T00:00:00.000Z`).toISOString(),
+          data_fim: new Date(`${dataFim}T00:00:00.000Z`).toISOString(),
+          forma_pagamento: formaPagamento,
+          valor_total: valorTotalCalculado,
+          status,
+          observacoes: observacoes.trim().toUpperCase(),
+        })
+        toast({
+          title: 'Locação cadastrada!',
+          description:
+            'Contrato de aluguel criado e associado ao seu usuário vendedor com sucesso.',
+        })
+      }
 
       setIsModalOpen(false)
+      setEditingVendaId(null)
       loadData()
     } catch (err: unknown) {
       console.error(err)
       toast({
         variant: 'destructive',
-        title: 'Erro ao cadastrar locação',
+        title: editingVendaId ? 'Erro ao atualizar locação' : 'Erro ao cadastrar locação',
         description: err instanceof Error ? err.message : 'Verifique os dados enviados.',
       })
     } finally {
@@ -553,24 +634,52 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                     </Badge>
                   </td>
                   <td className="px-4 py-3.5 text-right">
-                    {/* Botão Gerar Contrato visível quando aprovado/ativo (status ativa ou encerrada) */}
-                    {v.status === 'ativa' || v.status === 'encerrada' ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedVendaContrato(v)
-                          setIsContratoOpen(true)
-                        }}
-                        className="h-8 gap-1.5 text-xs border-[#E5E0DA] text-[#A67C52] hover:bg-[#FAF7F3] hover:text-[#8C643F] shadow-2xs font-semibold"
-                        title="Visualizar e Imprimir Contrato em PDF"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        <span>Imprimir Contrato</span>
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-[#A0A0A0] italic">Cancelado</span>
-                    )}
+                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                      {/* Botão Editar e Cancelar: SOMENTE quando NÃO está aprovada E NÃO está cancelada */}
+                      {v.status !== 'aprovada' && v.status !== 'cancelada' && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditModal(v)}
+                            className="h-8 gap-1 text-xs border-[#A67C52] text-[#A67C52] hover:bg-[#FAF7F3] font-medium"
+                            title="Editar Locação"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            <span>Editar</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openCancelarModal(v)}
+                            className="h-8 gap-1 text-xs border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 font-medium"
+                            title="Cancelar Locação e liberar estoque"
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                            <span>Cancelar Locação</span>
+                          </Button>
+                        </>
+                      )}
+
+                      {/* Botão Gerar Contrato visível para ativa, encerrada ou aprovada */}
+                      {v.status !== 'cancelada' ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedVendaContrato(v)
+                            setIsContratoOpen(true)
+                          }}
+                          className="h-8 gap-1.5 text-xs border-[#E5E0DA] text-[#A67C52] hover:bg-[#FAF7F3] hover:text-[#8C643F] shadow-2xs font-semibold"
+                          title="Visualizar e Imprimir Contrato em PDF"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          <span>Imprimir Contrato</span>
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-[#A0A0A0] italic">Cancelado</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -579,16 +688,23 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
         )}
       </div>
 
-      {/* Modal Nova Venda */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-xl bg-white">
+      {/* Modal Nova Venda / Editar Venda */}
+      <Dialog
+        open={isModalOpen}
+        onOpenChange={(open) => {
+          setIsModalOpen(open)
+          if (!open) setEditingVendaId(null)
+        }}
+      >
+        <DialogContent className="max-w-xl bg-white max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#2B2B2B]">
-              Novo Contrato de Locação
+              {editingVendaId ? 'Editar Contrato de Locação' : 'Novo Contrato de Locação'}
             </DialogTitle>
             <DialogDescription className="text-xs text-[#6B6B6B]">
-              O vendedor responsável é registrado de forma automática no servidor como{' '}
-              <strong className="text-[#A67C52]">{user?.name || user?.email}</strong>.
+              {editingVendaId
+                ? 'Altere cliente, endereço, itens ou período. O valor e a disponibilidade serão recalculados automaticamente.'
+                : `O vendedor responsável é registrado de forma automática no servidor como ${user?.name || user?.email}.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -881,7 +997,11 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
                 }
                 className="bg-[#A67C52] hover:bg-[#8C643F] text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSaving ? 'Gravando...' : 'Salvar e Gerar Contrato'}
+                {isSaving
+                  ? 'Gravando...'
+                  : editingVendaId
+                    ? 'Salvar Alterações'
+                    : 'Salvar e Gerar Contrato'}
               </Button>
             </DialogFooter>
           </form>
@@ -934,6 +1054,63 @@ export default function VendasList({ isAdminView = false }: VendasPageProps) {
               className="bg-[#A67C52] hover:bg-[#8C643F] text-white"
             >
               Concluído
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Confirmação de Cancelamento de Locação */}
+      <Dialog open={isCancelModalOpen} onOpenChange={setIsCancelModalOpen}>
+        <DialogContent className="max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-[#2B2B2B] flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-red-600" />
+              <span>Confirmar Cancelamento de Locação</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[#6B6B6B] pt-2">
+              Deseja realmente cancelar este contrato de locação?
+              {vendaParaCancelar && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-900 space-y-1">
+                  <div>
+                    <strong>Cliente:</strong> {vendaParaCancelar.expand?.cliente?.nome || 'Cliente'}
+                  </div>
+                  <div>
+                    <strong>Móvel:</strong> {vendaParaCancelar.expand?.produto?.nome || 'Produto'} (
+                    {vendaParaCancelar.quantidade} un.)
+                  </div>
+                  <div>
+                    <strong>Período:</strong>{' '}
+                    {new Date(vendaParaCancelar.data_inicio).toLocaleDateString('pt-BR')} a{' '}
+                    {new Date(vendaParaCancelar.data_fim).toLocaleDateString('pt-BR')}
+                  </div>
+                  <p className="pt-1 text-[11px] text-red-700">
+                    O status passará para <strong>CANCELADA</strong> e o acervo de móveis será
+                    imediatamente liberado no motor de disponibilidade.
+                  </p>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isCanceling}
+              onClick={() => {
+                setIsCancelModalOpen(false)
+                setVendaParaCancelar(null)
+              }}
+              className="border-[#E5E0DA]"
+            >
+              Voltar
+            </Button>
+            <Button
+              type="button"
+              disabled={isCanceling}
+              onClick={handleConfirmarCancelamento}
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+            >
+              {isCanceling ? 'Cancelando...' : 'Confirmar Cancelamento'}
             </Button>
           </DialogFooter>
         </DialogContent>
