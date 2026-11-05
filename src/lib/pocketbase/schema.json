@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T22:15:42.375Z",
+  "generatedAt": "2026-11-05T00:12:06.790Z",
   "collections": [
     {
       "name": "users",
@@ -802,6 +802,56 @@
         "CREATE INDEX idx_enderecos_cliente ON enderecos (cliente)",
         "CREATE INDEX idx_enderecos_principal ON enderecos (principal)",
         "CREATE INDEX idx_enderecos_ativo ON enderecos (ativo)"
+      ]
+    },
+    {
+      "name": "notificacoes_email",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'ADMIN'",
+        "view": "@request.auth.role = 'ADMIN'",
+        "create": null,
+        "update": null,
+        "delete": "@request.auth.role = 'ADMIN'"
+      },
+      "fields": [
+        {
+          "name": "orcamento",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "orcamentos"
+        },
+        {
+          "name": "evento",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ENVIADO", "APROVADO", "RECUSADO", "EXPIRADO", "CONVERTIDO"]
+        },
+        {
+          "name": "destinatario",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_notificacoes_orcamento_evento ON notificacoes_email (orcamento, evento)"
       ]
     }
   ]
