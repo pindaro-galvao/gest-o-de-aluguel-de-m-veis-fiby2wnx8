@@ -108,7 +108,7 @@ export default function Layout() {
           <div>
             <button
               onClick={() => setAdminMenuOpen(!adminMenuOpen)}
-              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-xs font-semibold tracking-wider text-[#A0A0A0] uppercase hover:bg-[#383838] hover:text-[#FFFFFF] transition-colors"
+              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-xs font-semibold tracking-wider text-[#A0A0A0] hover:bg-[#383838] hover:text-[#FFFFFF] transition-colors"
             >
               <div className="flex items-center gap-2">
                 <LayoutDashboard className="h-4 w-4 text-[#A67C52]" />
@@ -171,7 +171,7 @@ export default function Layout() {
                   <button
                     type="button"
                     onClick={() => setConfigMenuOpen(!configMenuOpen)}
-                    className="flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-semibold tracking-wider text-[#B0B0B0] uppercase hover:bg-[#383838] hover:text-[#FFFFFF] transition-colors"
+                    className="flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-semibold tracking-wider text-[#B0B0B0] hover:bg-[#383838] hover:text-[#FFFFFF] transition-colors"
                   >
                     <div className="flex items-center gap-2">
                       <Settings className="h-3.5 w-3.5 text-[#A67C52]" />
@@ -267,7 +267,7 @@ export default function Layout() {
           <div className="mt-2">
             <button
               onClick={() => setVendasMenuOpen(!vendasMenuOpen)}
-              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-xs font-semibold tracking-wider text-[#A0A0A0] uppercase hover:bg-[#383838] hover:text-[#FFFFFF] transition-colors"
+              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-xs font-semibold tracking-wider text-[#A0A0A0] hover:bg-[#383838] hover:text-[#FFFFFF] transition-colors"
             >
               <div className="flex items-center gap-2">
                 <BadgeDollarSign className="h-4 w-4 text-[#A67C52]" />
@@ -337,7 +337,7 @@ export default function Layout() {
     if (role === 'VENDEDOR') {
       return (
         <div className="flex flex-col gap-1.5 px-3">
-          <div className="px-3 py-1 text-[11px] font-bold tracking-wider text-[#8A8A8A] uppercase">
+          <div className="px-3 py-1 text-[11px] font-bold tracking-wider text-[#8A8A8A]">
             VENDAS
           </div>
           <NavLink
@@ -384,7 +384,7 @@ export default function Layout() {
             Meus Orçamentos
           </NavLink>
 
-          <div className="mt-4 px-3 py-1 text-[11px] font-bold tracking-wider text-[#8A8A8A] uppercase">
+          <div className="mt-4 px-3 py-1 text-[11px] font-bold tracking-wider text-[#8A8A8A]">
             CARTEIRA
           </div>
           <NavLink
@@ -408,7 +408,7 @@ export default function Layout() {
     // Papel CLIENTE
     return (
       <div className="flex flex-col gap-1.5 px-3">
-        <div className="px-3 py-1 text-[11px] font-bold tracking-wider text-[#8A8A8A] uppercase">
+        <div className="px-3 py-1 text-[11px] font-bold tracking-wider text-[#8A8A8A]">
           ÁREA DO CLIENTE
         </div>
         <NavLink
@@ -490,7 +490,7 @@ export default function Layout() {
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold tracking-wide text-base text-white">LP MÓVEIS</span>
-              <span className="text-[10px] text-[#A67C52] font-semibold tracking-widest uppercase">
+              <span className="text-[10px] text-[#A67C52] font-semibold tracking-widest">
                 Aluguel de Móveis
               </span>
             </div>
@@ -517,7 +517,7 @@ export default function Layout() {
             </div>
             <Badge
               variant="outline"
-              className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 border ${getBadgeStyle()}`}
+              className={`text-[10px] font-bold tracking-wider px-2 py-0.5 border ${getBadgeStyle()}`}
             >
               {role}
             </Badge>
