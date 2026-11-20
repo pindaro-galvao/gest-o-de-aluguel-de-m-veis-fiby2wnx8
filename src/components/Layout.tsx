@@ -200,7 +200,7 @@ export default function Layout() {
                         }
                       >
                         <Layers className="h-3.5 w-3.5" />
-                        CATEGORIAS
+                        Categorias
                       </NavLink>
                       <NavLink
                         to="/admin/linhas"
@@ -214,7 +214,7 @@ export default function Layout() {
                         }
                       >
                         <Sparkles className="h-3.5 w-3.5" />
-                        LINHAS
+                        Linhas
                       </NavLink>
                       <NavLink
                         to="/admin/atributos"
@@ -228,7 +228,7 @@ export default function Layout() {
                         }
                       >
                         <Palette className="h-3.5 w-3.5" />
-                        ATRIBUTOS
+                        Atributos
                       </NavLink>
                     </div>
                   )}
