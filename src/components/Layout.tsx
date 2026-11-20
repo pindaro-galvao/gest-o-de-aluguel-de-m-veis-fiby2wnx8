@@ -112,7 +112,10 @@ export default function Layout() {
             >
               <div className="flex items-center gap-2">
                 <LayoutDashboard className="h-4 w-4 text-[#A67C52]" />
-                <span>ADMINISTRAÇÃO</span>
+                <span>
+                  Administração
+                  <br />
+                </span>
               </div>
               {adminMenuOpen ? (
                 <ChevronDown className="h-4 w-4" />
