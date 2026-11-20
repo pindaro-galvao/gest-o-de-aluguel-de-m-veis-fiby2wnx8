@@ -273,12 +273,12 @@ export default function AdminProdutos() {
     setIsSaving(true)
     try {
       const formData = new FormData()
-      formData.append('codigo', codigo.trim().toUpperCase())
-      formData.append('nome', nome.trim().toUpperCase())
+      formData.append('codigo', codigo.trim())
+      formData.append('nome', nome.trim())
       formData.append('tipo', tipoId)
       formData.append('linha', linhaId === 'NONE' ? '' : linhaId)
-      formData.append('dimensoes', dimensoes.trim().toUpperCase())
-      formData.append('descricao', descricao.trim().toUpperCase())
+      formData.append('dimensoes', dimensoes.trim())
+      formData.append('descricao', descricao.trim())
       formData.append('quantidade_estoque', String(quantidadeEstoque))
       formData.append('valor_locacao_diaria', String(valorLocacaoDiaria))
       formData.append('valor_locacao_mensal', String(valorLocacaoDiaria))
@@ -465,7 +465,7 @@ export default function AdminProdutos() {
                 const count = contagemPorCategoria[cat.id] || 0
                 return (
                   <SelectItem key={cat.id} value={cat.id}>
-                    {cat.nome.toUpperCase()} ({count})
+                    {cat.nome} ({count})
                   </SelectItem>
                 )
               })}
@@ -709,11 +709,11 @@ export default function AdminProdutos() {
                   id="prodCodigo"
                   value={codigo}
                   onChange={(e) => {
-                    setCodigo(e.target.value.toUpperCase())
+                    setCodigo(e.target.value)
                     if (formErrors.codigo) setFormErrors((p) => ({ ...p, codigo: '' }))
                   }}
                   placeholder="Ex: TDL-MAU-001"
-                  className="bg-[#FBF9F6] border-[#E5E0DA] font-mono text-xs uppercase"
+                  className="bg-[#FBF9F6] border-[#E5E0DA] font-mono text-xs"
                 />
                 {formErrors.codigo && <p className="text-xs text-red-600">{formErrors.codigo}</p>}
               </div>
@@ -726,7 +726,7 @@ export default function AdminProdutos() {
                   id="prodNome"
                   value={nome}
                   onChange={(e) => {
-                    setNome(e.target.value.toUpperCase())
+                    setNome(e.target.value)
                     if (formErrors.nome) setFormErrors((p) => ({ ...p, nome: '' }))
                   }}
                   placeholder="Ex: SOFÁ RETRÁTIL MAUI 3 LUGARES"
@@ -775,7 +775,7 @@ export default function AdminProdutos() {
                   <SelectContent>
                     {formCategorias.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.nome.toUpperCase()} {!c.ativo ? '(inativa)' : ''}
+                        {c.nome} {!c.ativo ? '(inativa)' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -790,7 +790,7 @@ export default function AdminProdutos() {
                 <Input
                   id="prodDim"
                   value={dimensoes}
-                  onChange={(e) => setDimensoes(e.target.value.toUpperCase())}
+                  onChange={(e) => setDimensoes(e.target.value)}
                   placeholder="Ex: 240 X 110 X 85 CM"
                   className="bg-[#FBF9F6] border-[#E5E0DA]"
                 />
@@ -843,7 +843,7 @@ export default function AdminProdutos() {
                 id="prodDesc"
                 rows={2}
                 value={descricao}
-                onChange={(e) => setDescricao(e.target.value.toUpperCase())}
+                onChange={(e) => setDescricao(e.target.value)}
                 placeholder="DETALHES DE MATERIAIS, CORDA NÁUTICA, ESTRUTURA DE ALUMÍNIO, TECIDOS..."
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
               />

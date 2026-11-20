@@ -116,15 +116,17 @@ export default function AdminAtributos() {
 
   const validate = () => {
     const errs: Record<string, string> = {}
-    const trimmedCod = codigoAtr.trim().toUpperCase()
-    const trimmedDesc = descricaoAtr.trim().toUpperCase()
+    const trimmedCod = codigoAtr.trim()
+    const trimmedDesc = descricaoAtr.trim()
 
     if (!trimmedCod) {
       errs.codigoAtr = 'O código do atributo (CODIGO_ATR) é obrigatório.'
     } else {
       // Validação em tempo real de código duplicado
       const exists = atributos.some(
-        (a) => a.id !== editingAtributo?.id && a.codigo_atr?.trim().toUpperCase() === trimmedCod,
+        (a) =>
+          a.id !== editingAtributo?.id &&
+          a.codigo_atr?.trim().toLowerCase() === trimmedCod.toLowerCase(),
       )
       if (exists) {
         errs.codigoAtr = 'Este código já está em uso por outro atributo.'
@@ -146,8 +148,8 @@ export default function AdminAtributos() {
     setIsSaving(true)
     try {
       const payload = {
-        codigo_atr: codigoAtr.trim().toUpperCase(),
-        descricao_atr: descricaoAtr.trim().toUpperCase(),
+        codigo_atr: codigoAtr.trim(),
+        descricao_atr: descricaoAtr.trim(),
         ativo,
       }
 
@@ -386,7 +388,7 @@ export default function AdminAtributos() {
                 id="atrCodigo"
                 value={codigoAtr}
                 onChange={(e) => {
-                  const val = e.target.value.toUpperCase()
+                  const val = e.target.value
                   setCodigoAtr(val)
                   if (formErrors.codigoAtr) setFormErrors((p) => ({ ...p, codigoAtr: '' }))
                 }}
@@ -406,7 +408,7 @@ export default function AdminAtributos() {
                 id="atrDescricao"
                 value={descricaoAtr}
                 onChange={(e) => {
-                  setDescricaoAtr(e.target.value.toUpperCase())
+                  setDescricaoAtr(e.target.value)
                   if (formErrors.descricaoAtr) setFormErrors((p) => ({ ...p, descricaoAtr: '' }))
                 }}
                 placeholder="Ex: TECIDO LINHO BEGE, MADEIRA TAUARI..."

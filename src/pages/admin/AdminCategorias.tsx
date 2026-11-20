@@ -119,8 +119,8 @@ export default function AdminCategorias() {
     setIsSaving(true)
     try {
       const payload = {
-        nome: nome.trim().toUpperCase(),
-        descricao: descricao.trim().toUpperCase(),
+        nome: nome.trim(),
+        descricao: descricao.trim(),
         ordem: Number(ordem) || 0,
         ativo,
       }
@@ -356,7 +356,7 @@ export default function AdminCategorias() {
                 id="catNome"
                 value={nome}
                 onChange={(e) => {
-                  setNome(e.target.value.toUpperCase())
+                  setNome(e.target.value)
                   if (formErrors.nome) setFormErrors((p) => ({ ...p, nome: '' }))
                 }}
                 placeholder="Ex: SOFÁ, POLTRONA, MESA..."
@@ -373,7 +373,7 @@ export default function AdminCategorias() {
                 id="catDesc"
                 rows={2}
                 value={descricao}
-                onChange={(e) => setDescricao(e.target.value.toUpperCase())}
+                onChange={(e) => setDescricao(e.target.value)}
                 placeholder="Ex: SOFÁS MODULARES, CHAISES E ASSENTOS PARA ÁREAS SOCIAIS..."
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
               />

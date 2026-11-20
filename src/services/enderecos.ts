@@ -37,14 +37,14 @@ export const enderecosService = {
   async create(data: CreateEnderecoDTO) {
     const payload = {
       cliente: data.cliente,
-      identificacao: (data.identificacao || '').trim().toUpperCase(),
-      logradouro: data.logradouro.trim().toUpperCase(),
-      numero: data.numero.trim().toUpperCase(),
-      complemento: (data.complemento || '').trim().toUpperCase(),
-      bairro: data.bairro.trim().toUpperCase(),
-      cidade: data.cidade.trim().toUpperCase(),
-      uf: data.uf.trim().toUpperCase(),
-      cep: (data.cep || '').trim().toUpperCase(),
+      identificacao: (data.identificacao || '').trim(),
+      logradouro: data.logradouro.trim(),
+      numero: data.numero.trim(),
+      complemento: (data.complemento || '').trim(),
+      bairro: data.bairro.trim(),
+      cidade: data.cidade.trim(),
+      uf: data.uf.trim(),
+      cep: (data.cep || '').trim(),
       principal: !!data.principal,
       ativo: data.ativo !== false,
     }
@@ -54,28 +54,28 @@ export const enderecosService = {
   async update(id: string, data: Partial<CreateEnderecoDTO>) {
     const payload: Partial<Record<string, unknown>> = { ...data }
     if (typeof payload.identificacao === 'string') {
-      payload.identificacao = payload.identificacao.trim().toUpperCase()
+      payload.identificacao = payload.identificacao.trim()
     }
     if (typeof payload.logradouro === 'string') {
-      payload.logradouro = payload.logradouro.trim().toUpperCase()
+      payload.logradouro = payload.logradouro.trim()
     }
     if (typeof payload.numero === 'string') {
-      payload.numero = payload.numero.trim().toUpperCase()
+      payload.numero = payload.numero.trim()
     }
     if (typeof payload.complemento === 'string') {
-      payload.complemento = payload.complemento.trim().toUpperCase()
+      payload.complemento = payload.complemento.trim()
     }
     if (typeof payload.bairro === 'string') {
-      payload.bairro = payload.bairro.trim().toUpperCase()
+      payload.bairro = payload.bairro.trim()
     }
     if (typeof payload.cidade === 'string') {
-      payload.cidade = payload.cidade.trim().toUpperCase()
+      payload.cidade = payload.cidade.trim()
     }
     if (typeof payload.uf === 'string') {
-      payload.uf = payload.uf.trim().toUpperCase()
+      payload.uf = payload.uf.trim()
     }
     if (typeof payload.cep === 'string') {
-      payload.cep = payload.cep.trim().toUpperCase()
+      payload.cep = payload.cep.trim()
     }
     return pb.collection('enderecos').update<EnderecoRecord>(id, payload)
   },

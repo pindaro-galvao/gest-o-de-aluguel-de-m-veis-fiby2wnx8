@@ -128,14 +128,14 @@ export function GerenciadorEnderecos({
     try {
       const data: CreateEnderecoDTO = {
         cliente: clienteId,
-        identificacao: identificacao.trim().toUpperCase(),
-        logradouro: logradouro.trim().toUpperCase(),
-        numero: numero.trim().toUpperCase(),
-        complemento: complemento.trim().toUpperCase(),
-        bairro: bairro.trim().toUpperCase(),
-        cidade: cidade.trim().toUpperCase(),
-        uf: uf.trim().toUpperCase(),
-        cep: cep.trim().toUpperCase(),
+        identificacao: identificacao.trim(),
+        logradouro: logradouro.trim(),
+        numero: numero.trim(),
+        complemento: complemento.trim(),
+        bairro: bairro.trim(),
+        cidade: cidade.trim(),
+        uf: uf.trim(),
+        cep: cep.trim(),
         principal,
         ativo,
       }
@@ -401,7 +401,7 @@ export function GerenciadorEnderecos({
                 <Input
                   id="endIdent"
                   value={identificacao}
-                  onChange={(e) => setIdentificacao(e.target.value.toUpperCase())}
+                  onChange={(e) => setIdentificacao(e.target.value)}
                   placeholder="EX: RESIDÊNCIA JARDINS, ESCRITÓRIO PAULISTA..."
                   className="bg-[#FBF9F6] border-[#E5E0DA]"
                 />
@@ -414,7 +414,7 @@ export function GerenciadorEnderecos({
                 <Input
                   id="endCep"
                   value={cep}
-                  onChange={(e) => setCep(e.target.value.toUpperCase())}
+                  onChange={(e) => setCep(e.target.value)}
                   placeholder="01310-200"
                   className="bg-[#FBF9F6] border-[#E5E0DA]"
                 />
@@ -430,7 +430,7 @@ export function GerenciadorEnderecos({
                   id="endLogr"
                   value={logradouro}
                   onChange={(e) => {
-                    setLogradouro(e.target.value.toUpperCase())
+                    setLogradouro(e.target.value)
                     if (formErrors.logradouro) setFormErrors((p) => ({ ...p, logradouro: '' }))
                   }}
                   placeholder="AV. PAULISTA"
@@ -449,7 +449,7 @@ export function GerenciadorEnderecos({
                   id="endNum"
                   value={numero}
                   onChange={(e) => {
-                    setNumero(e.target.value.toUpperCase())
+                    setNumero(e.target.value)
                     if (formErrors.numero) setFormErrors((p) => ({ ...p, numero: '' }))
                   }}
                   placeholder="1500"
@@ -467,7 +467,7 @@ export function GerenciadorEnderecos({
                 <Input
                   id="endComp"
                   value={complemento}
-                  onChange={(e) => setComplemento(e.target.value.toUpperCase())}
+                  onChange={(e) => setComplemento(e.target.value)}
                   placeholder="APTO 82, BLOCO B..."
                   className="bg-[#FBF9F6] border-[#E5E0DA]"
                 />
@@ -481,7 +481,7 @@ export function GerenciadorEnderecos({
                   id="endBairro"
                   value={bairro}
                   onChange={(e) => {
-                    setBairro(e.target.value.toUpperCase())
+                    setBairro(e.target.value)
                     if (formErrors.bairro) setFormErrors((p) => ({ ...p, bairro: '' }))
                   }}
                   placeholder="BELA VISTA"
@@ -500,7 +500,7 @@ export function GerenciadorEnderecos({
                   id="endCidade"
                   value={cidade}
                   onChange={(e) => {
-                    setCidade(e.target.value.toUpperCase())
+                    setCidade(e.target.value)
                     if (formErrors.cidade) setFormErrors((p) => ({ ...p, cidade: '' }))
                   }}
                   placeholder="SÃO PAULO"
@@ -518,7 +518,7 @@ export function GerenciadorEnderecos({
                   maxLength={2}
                   value={uf}
                   onChange={(e) => {
-                    setUf(e.target.value.toUpperCase())
+                    setUf(e.target.value)
                     if (formErrors.uf) setFormErrors((p) => ({ ...p, uf: '' }))
                   }}
                   placeholder="SP"

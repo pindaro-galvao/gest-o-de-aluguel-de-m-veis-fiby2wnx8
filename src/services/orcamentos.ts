@@ -39,7 +39,7 @@ export const orcamentosService = {
   ) {
     const payload: Record<string, unknown> = {
       ...data,
-      observacoes: data.observacoes ? data.observacoes.trim().toUpperCase() : '',
+      observacoes: data.observacoes ? data.observacoes.trim() : '',
     }
     // Se vendedor for explicitamente undefined ou vazio, não envia para não gerar erro de relação inválida
     if (!payload.vendedor) {
@@ -73,7 +73,7 @@ export const orcamentosService = {
   ) {
     const payload: Record<string, unknown> = {
       ...data,
-      observacoes: data.observacoes ? data.observacoes.trim().toUpperCase() : '',
+      observacoes: data.observacoes ? data.observacoes.trim() : '',
     }
     const orcamento = await pb.collection('orcamentos').update<OrcamentoRecord>(id, payload, {
       expand: 'cliente,vendedor,endereco',

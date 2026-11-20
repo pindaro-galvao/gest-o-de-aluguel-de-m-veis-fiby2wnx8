@@ -76,7 +76,7 @@ export default function AdminDashboard() {
       counts[nomeCategoria] = (counts[nomeCategoria] || 0) + 1
     }
     return Object.entries(counts).map(([tipo, count]) => ({
-      tipo: tipo.toUpperCase(),
+      tipo,
       count,
       percent: Math.round((count / (produtos.length || 1)) * 100),
     }))

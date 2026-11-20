@@ -164,13 +164,13 @@ export default function ClientesList() {
     setIsSaving(true)
     try {
       const resumoEndereco = endLogradouro
-        ? `${endLogradouro.trim().toUpperCase()}, ${endNumero.trim().toUpperCase()} - ${endBairro.trim().toUpperCase()}, ${endCidade.trim().toUpperCase()}/${endUf.trim().toUpperCase()}`
+        ? `${endLogradouro.trim()}, ${endNumero.trim()} - ${endBairro.trim()}, ${endCidade.trim()}/${endUf.trim()}`
         : ''
 
       const newCliente = await clientesService.create({
-        nome: nome.trim().toUpperCase(),
+        nome: nome.trim(),
         email: email.trim(),
-        telefone: telefone.trim().toUpperCase(),
+        telefone: telefone.trim(),
         endereco: resumoEndereco,
       })
 
@@ -178,14 +178,14 @@ export default function ClientesList() {
       if (endLogradouro.trim()) {
         await enderecosService.create({
           cliente: newCliente.id,
-          identificacao: endIdentificacao.trim().toUpperCase() || 'PRINCIPAL',
-          logradouro: endLogradouro.trim().toUpperCase(),
-          numero: endNumero.trim().toUpperCase(),
-          complemento: endComplemento.trim().toUpperCase(),
-          bairro: endBairro.trim().toUpperCase(),
-          cidade: endCidade.trim().toUpperCase(),
-          uf: endUf.trim().toUpperCase(),
-          cep: endCep.trim().toUpperCase(),
+          identificacao: endIdentificacao.trim() || 'PRINCIPAL',
+          logradouro: endLogradouro.trim(),
+          numero: endNumero.trim(),
+          complemento: endComplemento.trim(),
+          bairro: endBairro.trim(),
+          cidade: endCidade.trim(),
+          uf: endUf.trim(),
+          cep: endCep.trim(),
           principal: true,
           ativo: true,
         })
@@ -235,9 +235,9 @@ export default function ClientesList() {
     setIsSavingEdit(true)
     try {
       await clientesService.update(editingCliente.id, {
-        nome: editNome.trim().toUpperCase(),
+        nome: editNome.trim(),
         email: editEmail.trim(),
-        telefone: editTelefone.trim().toUpperCase(),
+        telefone: editTelefone.trim(),
       })
 
       toast({
@@ -530,7 +530,7 @@ export default function ClientesList() {
                   id="cliNome"
                   value={nome}
                   onChange={(e) => {
-                    setNome(e.target.value.toUpperCase())
+                    setNome(e.target.value)
                     if (formErrors.nome) setFormErrors((p) => ({ ...p, nome: '' }))
                   }}
                   placeholder="EX: MARIANA SILVA OU STUDIO DESIGN"
@@ -593,7 +593,7 @@ export default function ClientesList() {
                   <Input
                     id="endIdent"
                     value={endIdentificacao}
-                    onChange={(e) => setEndIdentificacao(e.target.value.toUpperCase())}
+                    onChange={(e) => setEndIdentificacao(e.target.value)}
                     placeholder="EX: RESIDÊNCIA, SEDE..."
                     className="bg-[#FBF9F6] border-[#E5E0DA]"
                   />
@@ -605,7 +605,7 @@ export default function ClientesList() {
                   <Input
                     id="endCep"
                     value={endCep}
-                    onChange={(e) => setEndCep(e.target.value.toUpperCase())}
+                    onChange={(e) => setEndCep(e.target.value)}
                     placeholder="01310-200"
                     className="bg-[#FBF9F6] border-[#E5E0DA]"
                   />
@@ -621,7 +621,7 @@ export default function ClientesList() {
                     id="endLogr"
                     value={endLogradouro}
                     onChange={(e) => {
-                      setEndLogradouro(e.target.value.toUpperCase())
+                      setEndLogradouro(e.target.value)
                       if (formErrors.endLogradouro)
                         setFormErrors((p) => ({ ...p, endLogradouro: '' }))
                     }}
@@ -640,7 +640,7 @@ export default function ClientesList() {
                     id="endNum"
                     value={endNumero}
                     onChange={(e) => {
-                      setEndNumero(e.target.value.toUpperCase())
+                      setEndNumero(e.target.value)
                       if (formErrors.endNumero) setFormErrors((p) => ({ ...p, endNumero: '' }))
                     }}
                     placeholder="1500"
@@ -660,7 +660,7 @@ export default function ClientesList() {
                   <Input
                     id="endComp"
                     value={endComplemento}
-                    onChange={(e) => setEndComplemento(e.target.value.toUpperCase())}
+                    onChange={(e) => setEndComplemento(e.target.value)}
                     placeholder="APTO 82..."
                     className="bg-[#FBF9F6] border-[#E5E0DA]"
                   />
@@ -673,7 +673,7 @@ export default function ClientesList() {
                     id="endBairro"
                     value={endBairro}
                     onChange={(e) => {
-                      setEndBairro(e.target.value.toUpperCase())
+                      setEndBairro(e.target.value)
                       if (formErrors.endBairro) setFormErrors((p) => ({ ...p, endBairro: '' }))
                     }}
                     placeholder="BELA VISTA"
@@ -694,7 +694,7 @@ export default function ClientesList() {
                     id="endCidade"
                     value={endCidade}
                     onChange={(e) => {
-                      setEndCidade(e.target.value.toUpperCase())
+                      setEndCidade(e.target.value)
                       if (formErrors.endCidade) setFormErrors((p) => ({ ...p, endCidade: '' }))
                     }}
                     placeholder="SÃO PAULO"
@@ -713,7 +713,7 @@ export default function ClientesList() {
                     maxLength={2}
                     value={endUf}
                     onChange={(e) => {
-                      setEndUf(e.target.value.toUpperCase())
+                      setEndUf(e.target.value)
                       if (formErrors.endUf) setFormErrors((p) => ({ ...p, endUf: '' }))
                     }}
                     placeholder="SP"
@@ -962,7 +962,7 @@ export default function ClientesList() {
                 id="editCliNome"
                 value={editNome}
                 onChange={(e) => {
-                  setEditNome(e.target.value.toUpperCase())
+                  setEditNome(e.target.value)
                   if (editFormErrors.editNome) setEditFormErrors((p) => ({ ...p, editNome: '' }))
                 }}
                 placeholder="EX: MARIANA SILVA"
@@ -1002,7 +1002,7 @@ export default function ClientesList() {
                 <Input
                   id="editCliTel"
                   value={editTelefone}
-                  onChange={(e) => setEditTelefone(e.target.value.toUpperCase())}
+                  onChange={(e) => setEditTelefone(e.target.value)}
                   placeholder="(11) 98765-4321"
                   className="bg-[#FBF9F6] border-[#E5E0DA]"
                 />

@@ -434,7 +434,7 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
               ? new Date(`${dataInicio}T00:00:00.000Z`).toISOString()
               : undefined,
             data_fim: dataFim ? new Date(`${dataFim}T00:00:00.000Z`).toISOString() : undefined,
-            observacoes: observacoes.trim().toUpperCase(),
+            observacoes: observacoes.trim(),
           },
           itens.map((it) => ({
             produto: it.produtoId,
@@ -461,7 +461,7 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
               : undefined,
             data_fim: dataFim ? new Date(`${dataFim}T00:00:00.000Z`).toISOString() : undefined,
             status: 'enviado',
-            observacoes: observacoes.trim().toUpperCase(),
+            observacoes: observacoes.trim(),
             // Se for CLIENTE, não passa vendedor (fica vazio para posterior atribuição)
             vendedor: role === 'CLIENTE' ? undefined : undefined,
           },
@@ -786,7 +786,7 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
           valor_total: subtotalItem > 0 ? subtotalItem : selectedOrcamento.valor_total,
           forma_pagamento: formaPagamentoConversao,
           status: 'ativa',
-          observacoes: observacoesConversao.trim().toUpperCase(),
+          observacoes: observacoesConversao.trim(),
           orcamento_origem: selectedOrcamento.id,
           vendedor: selectedOrcamento.vendedor || user?.id,
         })
@@ -1424,7 +1424,7 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                 id="obsOrc"
                 rows={2}
                 value={observacoes}
-                onChange={(e) => setObservacoes(e.target.value.toUpperCase())}
+                onChange={(e) => setObservacoes(e.target.value)}
                 placeholder="DETALHES DE ENTREGA, CONDIÇÕES ESPECIAIS NEGOCIADAS..."
                 className="bg-[#FBF9F6] border-[#E5E0DA]"
               />{' '}
@@ -2039,7 +2039,7 @@ export default function OrcamentosList({ isAdminView = false }: OrcamentosPagePr
                     id="obsConv"
                     rows={2}
                     value={observacoesConversao}
-                    onChange={(e) => setObservacoesConversao(e.target.value.toUpperCase())}
+                    onChange={(e) => setObservacoesConversao(e.target.value)}
                     className="bg-[#FBF9F6] border-[#E5E0DA]"
                   />
                 </div>
